@@ -134,6 +134,103 @@
     </div>
 </div>
 
+{{-- ======================= MODAL NUEVA/EDITAR OBRA ======================= --}}
+<div class="modal fade" id="modalObra" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-building mr-2"></i> Obra / Proyecto
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <label>Núm. Obra</label>
+                        <input type="text" id="txtNoObra" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label>Acciones</label>
+                        <input type="number" id="txtAcciones" class="form-control" value="0">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center">
+                        <label class="checkbox mt-6">
+                            <input type="checkbox" id="chkFranja">
+                            <span></span> Franja fronteriza
+                        </label>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label>Rubro</label>
+                        <select id="cmbRubroModal" class="form-control"></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Subrubro</label>
+                        <select id="cmbSubrubroModal" class="form-control"></select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <label>Programa</label>
+                        <select id="cmbPrograma" class="form-control"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Área</label>
+                        <select id="cmbArea" class="form-control"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Marginación</label>
+                        <select id="cmbMarginacion" class="form-control"></select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label>Tipo de Obra</label>
+                        <select id="cmbTipoObra" class="form-control"></select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <label>Nombre de la Obra</label>
+                        <input type="text" id="txtNombreObra" class="form-control">
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label>Antecedentes</label>
+                        <textarea id="txtAntecedentes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Observaciones</label>
+                        <textarea id="txtObservaciones" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="ObrasModule.guardarObra()">
+                    <i class="fas fa-save mr-1"></i> Guardar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')

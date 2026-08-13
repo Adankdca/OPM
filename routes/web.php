@@ -33,4 +33,14 @@ Route::prefix('api/Obras')->group(function () {
     Route::get('/getContratosAutocomplete', [ObrasController::class, 'getContratosAutocomplete']);
     Route::get('/getNumObrasAutocomplete', [ObrasController::class, 'getNumObrasAutocomplete']);
     Route::get('/getNombresAutocomplete', [ObrasController::class, 'getNombresAutocomplete']);
+
+    // Modal "Nueva Obra"
+    Route::get('/getObraById/{id}', [ObrasController::class, 'getObraById']);
+    Route::get('/getSubrubros/{idRubro}', [ObrasController::class, 'getSubrubros']);
+    Route::get('/getProgramas', [ObrasController::class, 'getProgramas']);
+    Route::get('/getAreas', [ObrasController::class, 'getAreas']);
+    Route::get('/getMarginacion', [ObrasController::class, 'getMarginacion']);
+    Route::get('/getTipoObra', [ObrasController::class, 'getTipoObra']);
+    Route::get('/getAreasByRubro/{idRubro}', [ObrasController::class, 'getAreasByRubro']);
+    Route::post('/guardarObra', [ObrasController::class, 'guardarObra']);
 });

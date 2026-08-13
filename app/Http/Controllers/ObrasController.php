@@ -219,4 +219,204 @@ class ObrasController extends Controller
 
         return response()->json($lista);
     }
+
+    // ══════════════════════════════════════════════════════════════
+    // MODAL "NUEVA OBRA" -- catalogos + guardar
+    //
+    // Los 6 catalogos (getSubrubros, getProgramas, getAreas,
+    // getMarginacion, getTipoObra, getAreasByRubro) son todos el mismo
+    // patron: SELECT Id, Nombre FROM catalogo. Se dejan con DB::table()
+    // porque es exactamente para esto que sirve el Query Builder --
+    // mucho mas legible que escribir el SQL a mano para algo tan simple.
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/obras/getObraById/{id}
+     * Trae una obra para precargar el modal en modo edicion.
+     */
+    public function getObraById($id)
+    {
+        $data = DB::table('TBLP_Obraproyecto')
+            ->select(
+                'IDobraproyecto as idobra',
+                'OP_Num_obra as noObra',
+                'OP_NombreObra as nombre',
+                'IDRubro as idRubro',
+                'IDPrograma as idSubrubro',
+                'IDprogram as idPrograma',
+                'IDArea as idArea',
+                'IdNivelmarginacion as idMarginacion',
+                'IDaprima as idTipoObra',
+                'OP_Antecendentes as antecedentes',
+                'OP_Observaciones as observaciones',
+                'OP_Acciones as acciones',
+                'Op_Franjafronteriza as franja'
+            )
+            ->where('IDobraproyecto', $id)
+            ->first();
+
+        return response()->json($data);
+    }
+
+    /**
+     * GET /api/obras/getSubrubros/{idRubro}
+     */
+    public function getSubrubros($idRubro)
+    {
+        $lista = DB::table('TBLC_Subrubro')
+            ->select('IDPrograma as Id', 'PRO_Nombre as Nombre')
+            ->where('IDRubro', $idRubro)
+            ->where('PRO_Nombre', 'NOT LIKE', '%(SELECCIONE)%')
+            ->orderBy('PRO_Nombre')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getProgramas
+     */
+    public function getProgramas()
+    {
+        $lista = DB::table('TblC_Programa')
+            ->select('IDprogram as Id', 'claveprograma as Nombre')
+            ->where('claveprograma', 'NOT LIKE', '%(SELECCIONE)%')
+            ->orderBy('claveprograma')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getAreas
+     */
+    public function getAreas()
+    {
+        $lista = DB::table('TblC_Liderproyecto')
+            ->select('IDliderproyecto as Id', 'NombreLider as Nombre')
+            ->where('NombreLider', 'NOT LIKE', '%(SELECCIONE)%')
+            ->orderBy('NombreLider')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getMarginacion
+     */
+    public function getMarginacion()
+    {
+        $lista = DB::table('TblC_Nivelmarginacion')
+            ->select('IdNivelmarginacion as Id', 'NM_Descripcion as Nombre')
+            ->where('NM_Descripcion', 'NOT LIKE', '%(SELECCIONE)%')
+            ->orderBy('NM_Descripcion')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getTipoObra
+     */
+    public function getTipoObra()
+    {
+        $lista = DB::table('TblC_Normalesnocontratadas')
+            ->select('IDaprima as Id', 'AprimaNombre as Nombre')
+            ->where('AprimaNombre', 'NOT LIKE', '%(SELECCIONE)%')
+            ->orderBy('AprimaNombre')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getAreasByRubro/{idRubro}
+     */
+    public function getAreasByRubro($idRubro)
+    {
+        $lista = DB::table('TblC_Liderproyecto')
+            ->select('IDliderproyecto as Id', 'NombreLider as Nombre')
+            ->where(function ($q) use ($idRubro) {
+                $q->where('IDRubro', $idRubro)->orWhere('IDRubro', 0);
+            })
+            ->orderBy('NombreLider')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * POST /api/obras/guardarObra
+     * Equivalente a GuardarObra(ModelObra.ObraSaveDTO m).
+     *
+     * DIFERENCIA IMPORTANTE con el C# original: aqui NO se usa el Modelo
+     * Eloquent (Obraproyecto::create/update) sino DB::table()->insert()/
+     * update(), por la misma razon que en getObras -- el INSERT trae
+     * columnas fijas (IDtipoejecucion=1, etc.) que no queremos exponer
+     * como $fillable del modelo por descuido en otras pantallas.
+     * Cuando migremos una pantalla que sea CRUD simple de verdad, ahi
+     * si conviene usar el Modelo de lleno.
+     *
+     * Tu Obras.js manda el body como JSON (contentType: 'application/json'),
+     * Laravel lo parsea automaticamente -- por eso $request->input('idobra')
+     * funciona igual que si fuera un form normal, sin configuracion extra.
+     */
+    public function guardarObra(Request $request)
+    {
+        $idobra = (int) $request->input('idobra', 0);
+
+        // .ToUpper() del C# original -> mb_strtoupper() en PHP (la version
+        // "mb_" -- multibyte -- es importante para que respete acentos y ñ)
+        $nombre = $request->input('nombre') ? mb_strtoupper($request->input('nombre')) : null;
+        $antecedentes = $request->input('antecedentes') ? mb_strtoupper($request->input('antecedentes')) : null;
+        $observaciones = $request->input('observaciones') ? mb_strtoupper($request->input('observaciones')) : null;
+
+        if ($idobra === 0) {
+            // ───── INSERT (nueva obra) ─────
+            $id = DB::table('TBLP_Obraproyecto')->insertGetId([
+                'IDRubro'             => $request->input('idRubro'),
+                'OP_Num_obra'         => $request->input('noObra'),
+                'OP_NombreObra'       => $nombre,
+                'IDPrograma'          => $request->input('idSubrubro'),
+                'IDprogram'           => $request->input('idPrograma'),
+                'IDArea'              => $request->input('idArea'),
+                'OP_Antecendentes'    => $antecedentes,
+                'OP_Observaciones'    => $observaciones,
+                'OP_Acciones'         => $request->input('acciones'),
+                'IDtipoejecucion'     => 1,
+                'OP_ProyectoEstrategico' => 0,
+                'OP_Letrero'          => 0,
+                'IDNivel'             => 15,
+                'OP_Beneficiados'     => 0,
+                'OP_Autorizada'       => 0,
+                'OP_Eliminado'        => 0,
+                'Op_Franjafronteriza' => $request->boolean('franja'),
+                'IdNivelmarginacion'  => $request->input('idNivelMarginacion'),
+                'IDaprima'            => $request->input('idAprima'),
+                'OP_FechaCreacion'    => now(),
+            ], 'IDobraproyecto');
+
+            return response()->json(['success' => true, 'id' => $id]);
+        }
+
+        // ───── UPDATE (obra existente) ─────
+        DB::table('TBLP_Obraproyecto')
+            ->where('IDobraproyecto', $idobra)
+            ->update([
+                'OP_Num_obra'         => $request->input('noObra'),
+                'OP_NombreObra'       => $nombre,
+                'IDRubro'             => $request->input('idRubro'),
+                'IDPrograma'          => $request->input('idSubrubro'),
+                'IDprogram'           => $request->input('idPrograma'),
+                'IDArea'              => $request->input('idArea'),
+                'OP_Antecendentes'    => $antecedentes,
+                'OP_Observaciones'    => $observaciones,
+                'OP_Acciones'         => $request->input('acciones'),
+                'Op_Franjafronteriza' => $request->boolean('franja'),
+                'IdNivelmarginacion'  => $request->input('idNivelMarginacion'),
+                'IDaprima'            => $request->input('idAprima'),
+            ]);
+
+        return response()->json(['success' => true]);
+    }
 }

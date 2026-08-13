@@ -7,6 +7,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
     {{--
+        TOKEN CSRF -- IMPORTANTE.
+        Laravel protege por default toda peticion POST/PUT/DELETE contra
+        ataques CSRF (algo que tu .NET original no traia configurado asi).
+        Sin este token, guardarObra() te va a marcar error 419 "Page Expired".
+        csrf_token() genera un codigo unico por sesion; lo ponemos aqui como
+        meta tag para poder leerlo desde JS mas abajo, SIN tener que tocar
+        ni una linea de tu Obras.js original.
+    --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    {{--
         IMPORTANTE: en .NET estas rutas ("assets/css/...") apuntaban a la
         carpeta física del sitio. En Laravel, TODO lo que va dentro de
         public/ se sirve tal cual desde la raíz del dominio, así que
@@ -15,6 +26,8 @@
         completa a miapp/public/assets/ (te lo recordé en el mensaje anterior).
     --}}
     <script src="{{ asset('assets/vendor/general/jquery/dist/jquery.js') }}"></script>
+
+    
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,7 +124,39 @@
     <script src="{{ asset('assets/plugins/global/plugins.bundle.js') }}"></script>
     <script src="{{ asset('assets/js/scripts.bundle.js') }}"></script>
     <script src="{{ asset('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
-
+<script>
+        // OJO -- este bloque va AQUI, DESPUES de plugins.bundle.js, y no en
+        // el <head>. Metronic trae su propia copia de jQuery empaquetada
+        // dentro de plugins.bundle.js; si el ajaxSetup se configura antes
+        // (como en el <head>), esa segunda carga de jQuery pisa la
+        // configuracion y el token CSRF deja de mandarse -> error 419.
+        //
+        // Con esto, CUALQUIER $.ajax/$.post/$.get que haga Obras.js (o
+        // cualquier otro JS futuro) manda automaticamente el token CSRF
+        // en el header -- una sola vez aqui, en vez de modificar cada
+        // archivo .js del proyecto.
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+ 
+        // Si la sesion expira (o el token queda desincronizado por
+        // cualquier otra razon), en vez de que el usuario vea un JSON feo
+        // de error, se le avisa claro y se recarga la pagina sola para
+        // que obtenga un token fresco.
+        $(document).ajaxError(function (event, xhr) {
+            if (xhr.status === 419) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sesión vencida',
+                    text: 'La página se actualizará para continuar.'
+                }).then(function () {
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>
