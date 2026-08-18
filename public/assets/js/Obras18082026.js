@@ -224,11 +224,11 @@ const ObrasModule = (function () {
                 '<td class="text-right">' + fmt(o.federal) + '</td>' +
                 '<td class="text-right font-weight-bold text-danger">' + fmt(o.total) + '</td>' +
                 '<td class="text-center" style="white-space:nowrap;">' +
-                // Encuestas de Seguimiento (modulo nuevo, beta)
-                '<button type="button" class="btn btn-sm btn-icon btn-light-warning mr-1" ' +
-                'onclick="EncuestasModule.verEncuestas(' + o.idobra + ')" title="Encuestas de Seguimiento">' +
-                '<i class="fas fa-clipboard-check"></i>' +
-                '</button>' +
+                // Localidades
+                /*'<button type="button" class="btn btn-sm btn-icon btn-light-info mr-1" ' +
+                'onclick="ObrasModule.verLocalidades(' + o.idobra + ')" title="Localidades">' +
+                '<i class="fas fa-map-marker-alt"></i>' +
+                '</button>' + */
                 // Acciones — muestra conteo como badge encima del ícono
                 '<button type="button" class="btn btn-sm btn-icon btn-light-success mr-1 position-relative" ' +
                 'onclick="ObrasModule.verAcciones(' + o.idobra + ')" title="Acciones (' + o.numAcciones + ')">' +
@@ -1029,7 +1029,7 @@ const ObrasModule = (function () {
 
         $.get(API + 'getOrigenById/' + idFuente, function (o) {
             $('#cboOrigenFuente').val(o.idOrigen);
-            $('#cboFuenteFinanciamiento').val(o.idFuenteFinanciamiento);
+            $('#cboFuenteFinanciamiento').val(o.idFuenteFinanciamiento);// se realizo modificacion
             $('#txtInversionOrigen').val(parseFloat(o.inversion || 0).toFixed(2));
             $('#txtFechaVencimientoOrigen').val(o.fechaVencimiento || '');
             $('#panelFormOrigen').show();

@@ -4,7 +4,7 @@
  */
 const LoginModule = (function () {
 
-    const API = 'api/Login/';
+    const LOGIN_URL = '/login';
 
     // ── Toggle mostrar/ocultar contraseña ────────────────────────────
     var togglePassword = function () {
@@ -61,9 +61,9 @@ const LoginModule = (function () {
         $btn.addClass('loading').prop('disabled', true);
 
         $.ajax({
-            type: 'GET',
-            url: API + 'getuser',
-            data: { user: user, pass: pass },
+            type: 'POST',
+            url: LOGIN_URL,
+            data: { user: user, password: pass, _token: $('meta[name="csrf-token"]').attr('content') },
             success: function (response) {
                 $btn.removeClass('loading').prop('disabled', false);
 
@@ -71,8 +71,8 @@ const LoginModule = (function () {
                     // Error de credenciales
                     $('#txtUsuario, #txtPassword').css('border-color', '#F64E60');
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Acceso denegado',
+                        icon: response.blocked ? 'warning' : 'error',
+                        title: response.blocked ? 'Cuenta bloqueada' : 'Acceso denegado',
                         text: response.message || 'Usuario o contraseña incorrectos.',
                         confirmButtonColor: '#1565C0',
                         confirmButtonText: 'Intentar de nuevo'
@@ -84,37 +84,19 @@ const LoginModule = (function () {
                     return;
                 }
 
-                // Usuario bloqueado
-                if (response.data && response.data.Bloqueo) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Cuenta bloqueada',
-                        text: 'Su cuenta está bloqueada. Contacte al administrador del sistema.',
-                        confirmButtonColor: '#1565C0'
-                    });
-                    return;
-                }
-
-                // Guardar datos en sessionStorage
                 var datos = response.data;
-                sessionStorage.setItem('idusuario', datos.Idusuario || '');
-                sessionStorage.setItem('name', datos.Usuario || '');
-                sessionStorage.setItem('nombreCompleto', datos.Nombre || '');
-                sessionStorage.setItem('cargo', datos.Cargo_Puesto || '');
-                sessionStorage.setItem('sistema', datos.Sistema || '');
 
                 // Bienvenida y redirección
                 Swal.fire({
                     icon: 'success',
                     title: '¡Bienvenido!',
-                    html: '<strong>' + (datos.Nombre || datos.Usuario) + '</strong>' +
-                        '<br><small class="text-muted">' + (datos.Cargo_Puesto || '') + '</small>',
+                    html: '<strong>' + (datos.nombre || datos.usuario) + '</strong>',
                     timer: 2500,
                     timerProgressBar: true,
                     showConfirmButton: false,
                     allowOutsideClick: false
                 }).then(function () {
-                    window.location.href = 'Principal.aspx';
+                    window.location.href = response.redirect;
                 });
             },
             error: function (xhr) {
@@ -122,7 +104,7 @@ const LoginModule = (function () {
                 var msg = 'Error de conexión con el servidor.';
                 try {
                     var err = JSON.parse(xhr.responseText);
-                    msg = err.Message || msg;
+                    msg = err.message || (err.errors && Object.values(err.errors)[0][0]) || msg;
                 } catch (e) { }
                 Swal.fire({
                     icon: 'error',
@@ -136,14 +118,27 @@ const LoginModule = (function () {
 
     // ── Init ──────────────────────────────────────────────────────────
     var init = function () {
+        $('#loginForm').on('submit', function (e) {
+            e.preventDefault();
+            login();
+        });
+
+        $('#togglePassword').on('click', togglePassword);
+
         // Enter en usuario pasa al password
         $('#txtUsuario').on('keypress', function (e) {
-            if (e.which === 13) $('#txtPassword').focus();
+            if (e.which === 13) {
+                e.preventDefault();
+                $('#txtPassword').focus();
+            }
         });
 
         // Enter en password hace login
         $('#txtPassword').on('keypress', function (e) {
-            if (e.which === 13) login();
+            if (e.which === 13) {
+                e.preventDefault();
+                login();
+            }
         });
 
         // Limpiar error al escribir

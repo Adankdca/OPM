@@ -419,4 +419,606 @@ class ObrasController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    // ══════════════════════════════════════════════════════════════
+    // ACCIONES (submodal "Acciones de la Obra")
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/obras/getNombreObra/{idobra}
+     * Trae solo el nombre, para el encabezado del modal.
+     */
+    public function getNombreObra($idobra)
+    {
+        $nombre = DB::table('TBLP_Obraproyecto')
+            ->where('IDobraproyecto', $idobra)
+            ->value('OP_NombreObra');
+
+        return response()->json($nombre);
+    }
+
+    /**
+     * GET /api/obras/getAcciones?idobra=..&anio=..
+     * Con anio='' (que es lo que SIEMPRE manda el JS ahora, porque el
+     * filtro visual quedo oculto) regresa TODAS las acciones de la obra.
+     */
+    public function getAcciones(Request $request)
+    {
+        $idobra = $request->query('idobra');
+        $anio = $request->query('anio', '');
+
+        $sql = "
+            SELECT DISTINCT
+                A.IDAcciones       AS idAccion,
+                A.OP_Año           AS anio,
+                A.AC_Accion        AS accion,
+                TE.TPE_Nombre      AS tipoEjecucion,
+                A.IDtipoejecucion  AS idTipoEjecucion,
+                TA.Descripcion     AS tipoAccion,
+                A.IDTipoaccion     AS idTipoAccion,
+                A.LCL_Nombre       AS localidad,
+                A.IDLocalidad      AS idLocalidad,
+                C.CON_Contrato     AS contrato,
+                A.IDContrato       AS idContrato
+            FROM TblD_Acciones A
+            LEFT JOIN TBLC_Tipoejecucion TE ON A.IDtipoejecucion = TE.IDtipoejecucion
+            LEFT JOIN TblC_TipoAccion    TA ON A.IDTipoaccion    = TA.IDTipoaccion
+            LEFT JOIN TBLD_Contrato       C ON A.IDContrato      = C.IDContrato
+            WHERE A.IDobraproyecto = :idobra1
+              AND (:anio1 = '' OR A.OP_Año = :anio2)
+            ORDER BY A.IDAcciones DESC
+        ";
+
+        $lista = DB::select($sql, [
+            'idobra1' => $idobra,
+            'anio1' => $anio,
+            'anio2' => $anio,
+        ]);
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getAccionById/{idAccion}
+     * Precarga el formulario en modo edicion.
+     */
+    public function getAccionById($idAccion)
+    {
+        $data = DB::table('TblD_Acciones as A')
+            ->select(
+                'A.IDAcciones as idAccion',
+                'A.OP_Año as anio',
+                'A.AC_Accion as accion',
+                'A.IDtipoejecucion as idTipoEjecucion',
+                'A.IDTipoaccion as idTipoAccion',
+                'A.IDLocalidad as idLocalidad',
+                'A.IDSubRubroEspecifico as idSubrubroEspecifico',
+                'A.Beneficiario as beneficiarios',
+                'A.Tipobeneficiario as tipoBeneficiario',
+                'A.Dictamenconfuente as dictamenFuente',
+                'A.Autorizadasinrecurso as autorizado',
+                'A.Liberada as liberada',
+                'A.AC_Descripcionaccion as descripcionObra',
+                'A.descripcionlocalidad as descripcionLocalidad',
+                'A.finalidad',
+                'A.funcion',
+                'A.subfuncion',
+                'A.programa',
+                'A.subprograma',
+                'A.proyecto'
+            )
+            ->where('A.IDAcciones', $idAccion)
+            ->first();
+
+        return response()->json($data);
+    }
+
+    /**
+     * POST /api/obras/guardarAccion
+     * Igual que guardarObra: un solo endpoint para crear y editar, la
+     * variable payload.accion ('add' / cualquier otra cosa) decide el modo.
+     *
+     * DIFERENCIA vs guardarObra: aqui SI hay logica extra antes del
+     * INSERT/UPDATE -- hay que garantizar que exista un registro en
+     * TBLD_añoobraproyecto para el año de esta accion (si no existe, se
+     * crea). Se replica tal cual la logica de tu C# original.
+     */
+    public function guardarAccion(Request $request)
+    {
+        $idobra = (int) $request->input('idobra');
+        $anio = (int) $request->input('anio');
+        $cveMun = $request->input('cveMunicipio', '061');
+
+        // ── 1) Garantizar que exista TBLD_añoobraproyecto para este año ──
+        $anioObra = DB::table('TBLD_añoobraproyecto')
+            ->where('IDobraproyecto', $idobra)
+            ->where('OP_Año', $anio)
+            ->first();
+
+        if ($anioObra) {
+            $idAnioObra = $anioObra->IDañoobraproyecto;
+        } else {
+            // ¿Es continuidad? (la obra ya tenia algun año registrado antes)
+            $esContinuidad = DB::table('TBLD_añoobraproyecto')
+                ->where('IDobraproyecto', $idobra)
+                ->exists();
+
+            $idAnioObra = DB::table('TBLD_añoobraproyecto')->insertGetId([
+                'IDobraproyecto' => $idobra,
+                'OP_Año' => $anio,
+                'OP_Continuidad' => $esContinuidad,
+                'OP_InversionEstatal' => 0,
+                'OP_InversionFederal' => 0,
+                'OP_InversioMunicipal' => 0,
+                'OP_Concepto' => null,
+            ], 'IDañoobraproyecto');
+        }
+
+        // ── 2) Datos de localidad (para desnormalizar nombre/clave, igual que el original) ──
+        $idLocalidad = (int) $request->input('idLocalidad', 0);
+        $cveLocalidad = '';
+        $nombreLocalidad = '';
+        if ($idLocalidad > 0) {
+            $loc = DB::table('TBLC_Localidades')
+                ->select('CveLocalidades', 'LCL_Nombre')
+                ->where('IDLocalidad', $idLocalidad)
+                ->first();
+            if ($loc) {
+                $cveLocalidad = $loc->CveLocalidades ?? '';
+                $nombreLocalidad = $loc->LCL_Nombre ?? '';
+            }
+        }
+
+        $accionTexto = mb_strtoupper($request->input('accionTexto', ''));
+
+        $campos = [
+            'IDañoobraproyecto' => $idAnioObra,
+            'OP_Año' => $anio,
+            'AC_Accion' => $accionTexto,
+            'IDtipoejecucion' => $request->input('idTipoEjecucion'),
+            'Dictamenconfuente' => $request->boolean('dictamenFuente'),
+            'Autorizadasinrecurso' => $request->boolean('autorizado'),
+            'Liberada' => $request->boolean('liberada'),
+            'Beneficiario' => $request->input('beneficiarios', 0),
+            'Tipobeneficiario' => $request->input('tipoBeneficiario'),
+            'IDTipoaccion' => $request->input('idTipoAccion'),
+            'IDSubRubroEspecifico' => $request->input('idSubrubroEspecifico'),
+            'IDLocalidad' => $idLocalidad,
+            'LCL_Nombre' => $nombreLocalidad,
+            'CveLocalidades' => $cveLocalidad,
+            'AC_Descripcionaccion' => $request->input('descripcionObra'),
+            'descripcionlocalidad' => $request->input('descripcionLocalidad'),
+            'finalidad' => $request->input('finalidad'),
+            'funcion' => $request->input('funcion'),
+            'subfuncion' => $request->input('subfuncion'),
+            'programa' => $request->input('programa'),
+            'subprograma' => $request->input('subprograma'),
+            'proyecto' => $request->input('proyecto'),
+        ];
+
+        if ($request->input('accion') === 'add') {
+            $fecha = now();
+            $id = DB::table('TblD_Acciones')->insertGetId(array_merge($campos, [
+                'IDobraproyecto' => $idobra,
+                'Meta' => 0,
+                'IDunidadmedida' => 75,
+                'IDTipoPoa' => 1,
+                'Autorizadas' => 1,
+                'Fecha' => $fecha,
+                'Fechaaccion' => $fecha,
+                'IDstatusaccion' => 1,
+                'Metamodificada' => 0,
+                'CveMunicipio' => $cveMun,
+                'MNP_Nombre' => 'OCOZOCOAUTLA DE ESPINOSA',
+                'IDstatusobra' => 12,
+            ]), 'IDAcciones');
+
+            return response()->json(['success' => true, 'id' => $id]);
+        }
+
+        $idAccion = (int) $request->input('idAccion');
+        DB::table('TblD_Acciones')
+            ->where('IDAcciones', $idAccion)
+            ->update($campos);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * GET /api/obras/getAniosAccion/{idobra}
+     * Alimenta el filtro por año (que quedo oculto visualmente, pero el
+     * elemento sigue existiendo en el DOM -- ver nota en la vista Blade).
+     */
+    public function getAniosAccion($idobra)
+    {
+        $lista = DB::table('TblD_Acciones')
+            ->select('OP_Año as anio')
+            ->where('IDobraproyecto', $idobra)
+            ->distinct()
+            ->orderBy('OP_Año', 'desc')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getTipoEjecucion
+     */
+    public function getTipoEjecucion()
+    {
+        $lista = DB::table('TBLC_Tipoejecucion')
+            ->select('IDtipoejecucion as id', 'TPE_Nombre as nombre')
+            ->orderBy('TPE_Nombre')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getTipoAccion
+     */
+    public function getTipoAccion()
+    {
+        $lista = DB::table('TblC_TipoAccion')
+            ->select('IDTipoaccion as id', 'Descripcion as nombre')
+            ->orderBy('Descripcion')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getLocalidades
+     */
+    public function getLocalidades()
+    {
+        $lista = DB::table('TBLC_Localidades')
+            ->select('IDLocalidad as id', 'LCL_Nombre as nombre')
+            ->where('CveMunicipio', '061')
+            ->orderBy('LCL_Nombre')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getSubrubroEspecifico/{idobra}
+     */
+    public function getSubrubroEspecifico($idobra)
+    {
+        $idPrograma = DB::table('TBLP_Obraproyecto')
+            ->where('IDobraproyecto', $idobra)
+            ->value('IDPrograma') ?? 0;
+
+        $lista = DB::table('TblC_Subrubroespecifico')
+            ->select('IDSubRubroEspecifico as id', 'Descripcion as nombre')
+            ->where('IDSubrubro', $idPrograma)
+            ->orderBy('Descripcion')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // ORIGEN DE INVERSIÓN (submodal dentro de Acciones)
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/obras/getOrigenes/{idAccion}
+     */
+    public function getOrigenes($idAccion)
+    {
+        $sql = "
+            SELECT F.IdFuenteinversion AS idFuente,
+                   O.OF_Origenfuente   AS origen,
+                   FF.PRF_Nombre       AS fuente,
+                   F.IdOrigenfuente    AS idOrigen,
+                   F.IDProgramafinanciamiento AS idFuenteFin,
+                   F.FI_Inversion      AS inversion,
+                   DATE_FORMAT(F.Fechavencimiento, '%d/%m/%Y') AS fechaVencimiento
+            FROM TBLD_Financiamientoinversion F
+            INNER JOIN TBLC_Origenfuente O ON F.IdOrigenfuente = O.IdOrigenfuente
+            INNER JOIN TblC_FuenteFinanciamiento FF ON F.IDProgramafinanciamiento = FF.IDFuenteFinanciamiento
+            WHERE F.IDAcciones = :id
+        ";
+        return response()->json(DB::select($sql, ['id' => $idAccion]));
+    }
+
+    /**
+     * GET /api/obras/getOrigenById/{idFuente}
+     *
+     * NOTA -- corrige un bug real del C# original: ahi la misma columna
+     * alias "idFuente" se usaba dos veces (IdFuenteinversion Y
+     * IDProgramafinanciamiento), y la segunda pisaba a la primera.
+     * Por casualidad eso "funcionaba" porque el JS solo necesitaba el
+     * segundo valor -- pero es fragil y confuso. Aqui se usan 3 nombres
+     * distintos y sin ambiguedad. Esto obliga a ajustar UNA linea del
+     * JS (ver nota que te doy aparte).
+     */
+    public function getOrigenById($idFuente)
+    {
+        $data = DB::table('TBLD_Financiamientoinversion')
+            ->select(
+                'IdFuenteinversion as idRegistro',
+                'IdOrigenfuente as idOrigen',
+                'IDProgramafinanciamiento as idFuenteFinanciamiento',
+                'FI_Inversion as inversion',
+                DB::raw("DATE_FORMAT(Fechavencimiento, '%d/%m/%Y') as fechaVencimiento")
+            )
+            ->where('IdFuenteinversion', $idFuente)
+            ->first();
+
+        return response()->json($data);
+    }
+
+    /**
+     * POST /api/obras/guardarOrigen
+     */
+    public function guardarOrigen(Request $request)
+    {
+        $idAccion = (int) $request->input('idAccion', 0);
+        $idOrigen = (int) $request->input('idOrigen', 0);
+        $idFuenteFin = (int) $request->input('idFuenteFinanciamiento', 0);
+        $inversion = (float) $request->input('inversion', 0);
+        $fVcto = $request->input('fechaVencimiento', '');
+
+        // Convertir dd/mm/yyyy -> Y-m-d para MySQL
+        $vctoMysql = null;
+        if ($fVcto) {
+            $partes = explode('/', $fVcto);
+            if (count($partes) === 3) {
+                $vctoMysql = "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+            }
+        }
+
+        if ($request->input('accion') === 'add') {
+            $existe = DB::table('TBLD_Financiamientoinversion')
+                ->where('IDAcciones', $idAccion)
+                ->where('IDProgramafinanciamiento', $idFuenteFin)
+                ->where('IdOrigenfuente', $idOrigen)
+                ->exists();
+
+            if ($existe) {
+                return response()->json('Fuente de Financiamiento duplicada.', 400);
+            }
+
+            DB::table('TBLD_Financiamientoinversion')->insert([
+                'IDAcciones' => $idAccion,
+                'IDañoobraproyecto' => 0,
+                'OP_Año' => 0,
+                'IdOrigenfuente' => $idOrigen,
+                'IDProgramafinanciamiento' => $idFuenteFin,
+                'FI_Inversion' => $inversion,
+                'Fechavencimiento' => $vctoMysql,
+            ]);
+        } else {
+            $idRegistro = (int) $request->input('idFuente', 0);
+            DB::table('TBLD_Financiamientoinversion')
+                ->where('IdFuenteinversion', $idRegistro)
+                ->update([
+                    'IdOrigenfuente' => $idOrigen,
+                    'IDProgramafinanciamiento' => $idFuenteFin,
+                    'FI_Inversion' => $inversion,
+                    'Fechavencimiento' => $vctoMysql,
+                ]);
+        }
+
+        // Recalcular sumas municipal/estatal/federal para la obra+año de esta accion
+        $accInfo = DB::table('TblD_Acciones')
+            ->select('IDobraproyecto', 'OP_Año')
+            ->where('IDAcciones', $idAccion)
+            ->first();
+
+        if ($accInfo) {
+            $this->sumaInversion($accInfo->IDobraproyecto, $accInfo->OP_Año);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * DELETE /api/obras/eliminarOrigen/{idFuente}
+     */
+    public function eliminarOrigen($idFuente)
+    {
+        $tieneCOCI = DB::table('TblD_COCI')->where('IdFuenteinversion', $idFuente)->exists();
+        if ($tieneCOCI) {
+            return response()->json('No puede eliminar. Existe Clave Presupuestal (COCI) registrada.', 400);
+        }
+
+        $fi = DB::table('TBLD_Financiamientoinversion as F')
+            ->join('TblD_Acciones as A', 'F.IDAcciones', '=', 'A.IDAcciones')
+            ->select('F.IDAcciones', 'A.IDobraproyecto', 'A.OP_Año')
+            ->where('F.IdFuenteinversion', $idFuente)
+            ->first();
+
+        DB::table('TBLD_Financiamientoinversion')->where('IdFuenteinversion', $idFuente)->delete();
+
+        if ($fi) {
+            $this->sumaInversion($fi->IDobraproyecto, $fi->OP_Año);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * GET /api/obras/getOrigenFuente
+     */
+    public function getOrigenFuente()
+    {
+        $lista = DB::table('TBLC_Origenfuente')
+            ->select('IdOrigenfuente as id', 'OF_Origenfuente as nombre')
+            ->where('OF_Origenfuente', 'NOT LIKE', '%(SELECCIONE)%')
+            ->orderBy('OF_Origenfuente')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getFuenteFinanciamiento
+     */
+    public function getFuenteFinanciamiento()
+    {
+        $lista = DB::table('TblC_FuenteFinanciamiento')
+            ->select('IDFuenteFinanciamiento as id', 'PRF_Nombre as nombre')
+            ->where('PRF_Nombre', 'NOT LIKE', '%(SELECCIONE)%')
+            ->orderBy('PRF_Nombre')
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * Recalcula OP_InversioMunicipal / OP_InversionEstatal / OP_InversionFederal
+     * en TBLD_añoobraproyecto, sumando VW_Sumainversiones por origen
+     * (1=Municipal, 2=Estatal, 3=Federal -- codigos fijos del catalogo
+     * TBLC_Origenfuente, igual que en el C# original).
+     */
+    private function sumaInversion($idobra, $anio)
+    {
+        $sumaMun = DB::table('VW_Sumainversiones')
+            ->where('IDobraproyecto', $idobra)->where('OP_Año', $anio)
+            ->where('IdOrigenfuente', 1)->sum('FI_Inversion');
+
+        $sumaEst = DB::table('VW_Sumainversiones')
+            ->where('IDobraproyecto', $idobra)->where('OP_Año', $anio)
+            ->where('IdOrigenfuente', 2)->sum('FI_Inversion');
+
+        $sumaFed = DB::table('VW_Sumainversiones')
+            ->where('IDobraproyecto', $idobra)->where('OP_Año', $anio)
+            ->where('IdOrigenfuente', 3)->sum('FI_Inversion');
+
+        DB::table('TBLD_añoobraproyecto')
+            ->where('IDobraproyecto', $idobra)->where('OP_Año', $anio)
+            ->update([
+                'OP_InversioMunicipal' => $sumaMun,
+                'OP_InversionEstatal' => $sumaEst,
+                'OP_InversionFederal' => $sumaFed,
+            ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // COCI (Costo Obra / Costo Indirecto) -- submodal dentro de Origenes
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/obras/getCOCI?idFuente=..&status=CO|CI
+     */
+    public function getCOCI(Request $request)
+    {
+        $idFuente = $request->query('idFuente');
+        $status = $request->query('status', 'CO');
+
+        $lista = DB::table('TblD_COCI')
+            ->select('IDcoci as idCoci', 'Cvepresupuestal as cvePresupuestal',
+                     'Inversioncoci as inversion', 'Statuscoci as status')
+            ->where('IdFuenteinversion', $idFuente)
+            ->where('Statuscoci', $status)
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * GET /api/obras/getCOCIById/{idCoci}
+     */
+    public function getCOCIById($idCoci)
+    {
+        $data = DB::table('TblD_COCI')
+            ->select('IDcoci as idCoci', 'Cvepresupuestal as cvePresupuestal',
+                     'Inversioncoci as inversion', 'Statuscoci as status')
+            ->where('IDcoci', $idCoci)
+            ->first();
+
+        return response()->json($data);
+    }
+
+    /**
+     * POST /api/obras/guardarCOCI
+     */
+    public function guardarCOCI(Request $request)
+    {
+        $idFuente = (int) $request->input('idFuente', 0);
+        $status = $request->input('status', 'CO');
+        $cvePres = mb_strtoupper($request->input('cvePresupuestal', ''));
+        $inversion = (float) $request->input('inversion', 0);
+
+        if ($request->input('accion') === 'add') {
+            $existe = DB::table('TblD_COCI')
+                ->where('IdFuenteinversion', $idFuente)
+                ->where('Cvepresupuestal', $cvePres)
+                ->where('Statuscoci', $status)
+                ->exists();
+
+            if ($existe) {
+                return response()->json('Clave Presupuestal duplicada.', 400);
+            }
+
+            DB::table('TblD_COCI')->insert([
+                'IdFuenteinversion' => $idFuente,
+                'Cvepresupuestal' => $cvePres,
+                'Inversioncoci' => $inversion,
+                'Statuscoci' => $status,
+                'IDmovimiento' => 1,
+            ]);
+        } else {
+            $idCoci = (int) $request->input('idCoci', 0);
+            DB::table('TblD_COCI')
+                ->where('IDcoci', $idCoci)
+                ->update([
+                    'Cvepresupuestal' => $cvePres,
+                    'Inversioncoci' => $inversion,
+                ]);
+        }
+
+        $this->sumaInversionCoci($idFuente);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * DELETE /api/obras/eliminarCOCI/{idCoci}
+     */
+    public function eliminarCOCI($idCoci)
+    {
+        $idFuente = DB::table('TblD_COCI')->where('IDcoci', $idCoci)->value('IdFuenteinversion');
+
+        DB::table('TblD_COCI')->where('IDcoci', $idCoci)->delete();
+
+        if ($idFuente) {
+            $this->sumaInversionCoci($idFuente);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Replica SumaInversionCOCI() del C# original:
+     * 1) Suma todos los COCI de esa fuente -> sobreescribe FI_Inversion
+     *    en TBLD_Financiamientoinversion (el monto del Origen pasa a ser
+     *    la suma de sus claves presupuestales).
+     * 2) Dispara sumaInversion() para recalcular municipal/estatal/federal
+     *    de la obra+año, igual que hace guardarOrigen().
+     */
+    private function sumaInversionCoci($idFuente)
+    {
+        $sumaTotal = DB::table('TblD_COCI')
+            ->where('IdFuenteinversion', $idFuente)
+            ->sum('Inversioncoci');
+
+        DB::table('TBLD_Financiamientoinversion')
+            ->where('IdFuenteinversion', $idFuente)
+            ->update(['FI_Inversion' => $sumaTotal]);
+
+        $fi = DB::table('TBLD_Financiamientoinversion as F')
+            ->join('TblD_Acciones as A', 'F.IDAcciones', '=', 'A.IDAcciones')
+            ->select('A.IDobraproyecto', 'A.OP_Año')
+            ->where('F.IdFuenteinversion', $idFuente)
+            ->first();
+
+        if ($fi) {
+            $this->sumaInversion($fi->IDobraproyecto, $fi->OP_Año);
+        }
+    }
 }

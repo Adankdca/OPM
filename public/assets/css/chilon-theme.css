@@ -1,0 +1,138 @@
+/* ================================================
+   Tema Chilón - basado en los colores reales del logo
+   Rojo   #CC0000  (reservado para "peligro"/eliminar)
+   Verde  #008424  (color PRIMARIO de todo el sistema)
+   Dorado #FCC000  (acentos puntuales)
+   Café   #6C3000
+   ================================================
+   v2: se cambia el color primario de rojo a VERDE (para
+   que el sistema completo -- sidebar, botones, TODOS los
+   modales, incluido el de Obra -- use el mismo verde que
+   ya tenia el modal de Acciones). El header pasa a gris
+   oscuro neutro en vez de color solido.
+   ================================================ */
+
+:root {
+  --chilon-rojo: #CC0000;
+  --chilon-rojo-oscuro: #A30000;
+  --chilon-verde: #008424;
+  --chilon-verde-oscuro: #006B1D;
+  --chilon-dorado: #FCC000;
+  --chilon-cafe: #6C3000;
+  --chilon-header-gris: #494b4e;
+}
+
+/* ============== Barra superior (header) ============== */
+#kt_header {
+  background-color: var(--chilon-header-gris) !important;
+}
+
+/* ============== Fondo primario (headers de modales, etc) ==============
+   ESTA es la regla que faltaba -- por eso el modal de Obra seguia
+   viendose azul (#6993FF) aunque ya hubieramos cambiado botones/links.
+   .bg-primary es justo la clase que usa <div class="modal-header
+   bg-primary text-white"> en el modal de Obra/Proyecto. */
+.bg-primary {
+  background-color: var(--chilon-verde) !important;
+}
+
+/* ============== Botones primarios ============== */
+.btn-primary {
+  background-color: var(--chilon-verde) !important;
+  border-color: var(--chilon-verde) !important;
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: var(--chilon-verde-oscuro) !important;
+  border-color: var(--chilon-verde-oscuro) !important;
+}
+
+/* ============== Boton de exito (Guardar) -- mismo verde, consistente ============== */
+.btn-success {
+  background-color: var(--chilon-verde) !important;
+  border-color: var(--chilon-verde) !important;
+}
+.btn-success:hover,
+.btn-success:focus {
+  background-color: var(--chilon-verde-oscuro) !important;
+  border-color: var(--chilon-verde-oscuro) !important;
+}
+
+/* ============== Texto / iconos primarios ============== */
+.text-primary {
+  color: var(--chilon-verde) !important;
+}
+.svg-icon-primary svg {
+  stroke: var(--chilon-verde) !important;
+}
+
+/* ============== Badges y alertas ============== */
+.badge-primary {
+  background-color: var(--chilon-verde) !important;
+}
+.badge-light-primary {
+  background-color: rgba(0, 132, 36, 0.1) !important;
+  color: var(--chilon-verde) !important;
+}
+.alert-light-primary {
+  background-color: rgba(0, 132, 36, 0.08) !important;
+  border-color: rgba(0, 132, 36, 0.2) !important;
+  color: var(--chilon-verde-oscuro) !important;
+}
+.alert-light-primary .text-primary {
+  color: var(--chilon-verde) !important;
+}
+
+/* ============== Sidebar / menu lateral: acentos activos ============== */
+.aside-menu .menu-nav > .menu-item:hover > .menu-link .menu-text,
+.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link .menu-text {
+  color: #fff !important;
+}
+.aside-menu .menu-nav > .menu-item.menu-item-active {
+  background-color: rgba(0, 132, 36, 0.15) !important;
+}
+.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link {
+  background-color: var(--chilon-verde) !important;
+}
+.aside-menu .menu-nav > .menu-item:hover > .menu-link .svg-icon svg,
+.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link .svg-icon svg {
+  stroke: #fff !important;
+}
+
+/* ============== Inputs: foco con acento verde ============== */
+.form-control:focus {
+  border-color: var(--chilon-verde) !important;
+}
+
+/* ============== Links ============== */
+a {
+  color: var(--chilon-verde);
+}
+a:hover {
+  color: var(--chilon-verde-oscuro);
+}
+
+/* ============== Totales de tabla (fila resaltada) ============== */
+.bg-light-primary {
+  background-color: rgba(0, 132, 36, 0.08) !important;
+}
+.text-danger {
+  color: var(--chilon-rojo) !important;
+}
+
+/* ============== Botones de peligro / eliminar -- se quedan en rojo ============== */
+.btn-danger {
+  background-color: var(--chilon-rojo) !important;
+  border-color: var(--chilon-rojo) !important;
+}
+.btn-danger:hover,
+.btn-danger:focus {
+  background-color: var(--chilon-rojo-oscuro) !important;
+  border-color: var(--chilon-rojo-oscuro) !important;
+}
+
+/* ============== Detalle dorado: borde de tarjetas destacadas ============== */
+.card-custom.border-left-gold {
+  border-left: 4px solid var(--chilon-dorado) !important;
+}

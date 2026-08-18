@@ -27,8 +27,6 @@
     --}}
     <script src="{{ asset('assets/vendor/general/jquery/dist/jquery.js') }}"></script>
 
-    
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -43,6 +41,11 @@
     <link href="{{ asset('assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('assets/css/style.bundle.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('assets/css/medguard.css') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/css/chilon-theme.css') }}" rel="stylesheet" />
+    {{-- chilon-theme.css se carga DESPUES de medguard.css a proposito, para
+         que sus reglas (con !important) ganen sobre los colores default de
+         Metronic. Si en algun momento quieres regresar a los colores
+         originales, basta con borrar esta linea -- no se toco nada mas. --}}
 
     <link href="{{ asset('assets/css/themes/layout/header/base/light.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('assets/css/themes/layout/header/menu/light.css') }}" rel="stylesheet" type="text/css" />
@@ -50,6 +53,11 @@
     <link href="{{ asset('assets/css/themes/layout/aside/dark.css') }}" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="shortcut icon" href="{{ asset('assets/media/logos/favicon.ico') }}" />
+    <style>
+        /* Mantiene el logotipo horizontal dentro del encabezado lateral de Metronic. */
+        #kt_brand .brand-logo { height: 65px; display: flex; align-items: center; justify-content: center; }
+        #kt_brand .brand-logo img { width: 190px; max-height: 56px; object-fit: contain; }
+    </style>
 
     @stack('head')
 </head>
@@ -60,9 +68,9 @@
 
             {{-- Aside / menú lateral --}}
             <div class="aside aside-left aside-fixed d-flex flex-column flex-row-auto" id="kt_aside">
-                <div class="brand flex-column-auto" id="kt_brand">
+                <div class="brand flex-column-auto" id="kt_brand" style="background-color: #ededed;">
                     <a href="{{ route('obras.principal') }}" class="brand-logo">
-                        <img alt="Logo" src="{{ asset('assets/media/logo.png') }}" />
+                        <img alt="Sistema de Verificación de Obras y Programas" src="{{ asset('assets/media/logonew.png') }}" />
                     </a>
                 </div>
                 <div class="aside-menu-wrapper flex-column-fluid" id="kt_aside_menu_wrapper">
@@ -98,10 +106,12 @@
                                 <div class="btn btn-icon w-auto btn-clean d-flex align-items-center btn-lg px-2">
                                     <span class="text-muted font-weight-bold font-size-base d-none d-md-inline mr-1">HOLA,</span>
                                     <span class="text-dark-50 font-weight-bolder font-size-base d-none d-md-inline mr-3">
-                                        {{-- En .NET esto venia de Session["usuario"]. Aqui vendria de
-                                             auth()->user()->name cuando montemos el login con Laravel --}}
-                                        {{ auth()->user()->name ?? 'Administrador' }}
+                                        {{ session('usuario.nombre', session('usuario.usuario', 'Usuario')) }}
                                     </span>
+                                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-light-danger font-weight-bold"><i class="fas fa-sign-out-alt mr-1"></i>Salir</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -124,7 +134,8 @@
     <script src="{{ asset('assets/plugins/global/plugins.bundle.js') }}"></script>
     <script src="{{ asset('assets/js/scripts.bundle.js') }}"></script>
     <script src="{{ asset('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
-<script>
+
+    <script>
         // OJO -- este bloque va AQUI, DESPUES de plugins.bundle.js, y no en
         // el <head>. Metronic trae su propia copia de jQuery empaquetada
         // dentro de plugins.bundle.js; si el ajaxSetup se configura antes
@@ -140,7 +151,7 @@
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
- 
+
         // Si la sesion expira (o el token queda desincronizado por
         // cualquier otra razon), en vez de que el usuario vea un JSON feo
         // de error, se le avisa claro y se recarga la pagina sola para
@@ -157,6 +168,7 @@
             }
         });
     </script>
+
     @stack('scripts')
 </body>
 </html>
