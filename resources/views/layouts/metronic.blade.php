@@ -89,8 +89,13 @@
                                     <span class="menu-text">Proyecto-Obras</span>
                                 </a>
                             </li>
-                            {{-- Aquí se van agregando los demás módulos (Contratos, Cédula de
-                                 Verificación, etc.) conforme los vayas migrando --}}
+                            <li class="menu-item" aria-haspopup="true">
+                                <a href="{{ route('contratos.index') }}" class="menu-link">
+                                    <span class="menu-text">Contratos</span>
+                                </a>
+                            </li>
+                            {{-- Aquí se van agregando los demás módulos (Cédula de
+                                 Verificación, Encuestas, etc.) conforme los vayas migrando --}}
                         </ul>
                     </div>
                 </div>

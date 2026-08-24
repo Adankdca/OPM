@@ -1,5 +1,5 @@
 {{--
-    Equivalente a Principal.aspx.
+    Equivalente al que tenemos  Principal.aspx. en el otro proyecto
     @extends() es el equivalente Blade de MasterPageFile="~/Site1.Master"
 --}}
 @extends('layouts.metronic')
@@ -622,6 +622,60 @@
                     </div>
                 </div>
 
+                {{-- ═══ PANEL 4: Asignar Contrato (submodal dentro de Acciones) ═══
+                     Consume el modulo Contratos ya migrado (TBLD_Contrato) via
+                     api/Obras/getContratosDisponibles, asignarContrato y
+                     quitarContrato -- ver Obras.js: abrirContrato() / quitarContrato(). --}}
+                <div id="panelContrato" style="display:none;">
+                    <div class="card card-custom shadow-sm" style="border-left:4px solid #FFA800 !important;">
+                        <div class="card-header" style="background:#fff8e8; min-height:45px; padding:10px 20px;">
+                            <div class="card-title mb-0">
+                                <i class="fas fa-file-contract text-warning mr-2"></i>
+                                <span class="font-weight-bold text-warning">Asignar Contrato</span>
+                            </div>
+                            <div class="card-toolbar">
+                                <button type="button" class="btn btn-sm btn-light" id="btnRegresarContrato">
+                                    <i class="fas fa-times mr-1"></i> Cerrar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="alert alert-light-warning py-2 mb-4">
+                                <small><strong>Acción:</strong> <span id="lblAccionContrato"></span></small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="font-weight-bold">Buscar contrato (número o descripción):</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="txtBuscarContrato"
+                                           placeholder="Ej. PM/DOPM/FISMDF-OT/001-2022">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-warning" id="btnBuscarContrato">
+                                            <i class="flaticon-search mr-1"></i> Buscar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="listaContratos" class="list-group mb-4"
+                                 style="max-height:220px; overflow-y:auto;"></div>
+
+                            <div class="form-group">
+                                <label class="font-weight-bold">Contrato seleccionado:</label>
+                                <input type="text" class="form-control" id="txtContratoSeleccionado" readonly
+                                       placeholder="Ningún contrato seleccionado">
+                                <input type="hidden" id="hddIdContratoBuscar">
+                            </div>
+
+                            <div class="text-right mt-3">
+                                <button type="button" class="btn btn-warning font-weight-bold" id="btnAsignarContrato">
+                                    <i class="fas fa-link mr-1"></i> Asignar Contrato
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-dismiss="modal">Cerrar</button>
@@ -772,7 +826,7 @@
 
 @push('scripts')
 {{--
-    Tu Obras.js va SIN MODIFICAR a public/assets/js/Obras.js.
+    Obras.js va SIN MODIFICAR a public/assets/js/Obras.js.
     No hace falta llamar ObrasModule.init() aquí -- el propio archivo ya
     trae su arranque automático al final:
         $(document).ready(function () { ObrasModule.init(); Clock.init(); });

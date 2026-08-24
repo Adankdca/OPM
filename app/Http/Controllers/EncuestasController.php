@@ -110,10 +110,10 @@ class EncuestasController extends Controller
         // ── Guardar fotos (puede venir 0, 1 o varias) ──
         if ($request->hasFile('fotos')) {
             foreach ($request->file('fotos') as $foto) {
-                // Storage::disk('public') guarda en storage/app/public/...
-                // y con "php artisan storage:link" (ver instrucciones aparte)
-                // queda accesible via URL en public/storage/...
-                $ruta = $foto->store('encuestas/fotos', 'public');
+                // Storage::disk('uploads') guarda DIRECTO en public/uploads/...
+                // (disco personalizado, definido en config/filesystems.php,
+                // para no depender de "php artisan storage:link")
+                $ruta = $foto->store('encuestas/fotos', 'uploads');
                 DB::table('TblD_EncuestaFotos')->insert([
                     'IDEncuesta' => $idEncuesta,
                     'RutaArchivo' => $ruta,
@@ -126,7 +126,7 @@ class EncuestasController extends Controller
         // ── Guardar documentos (puede venir 0, 1 o varios) ──
         if ($request->hasFile('documentos')) {
             foreach ($request->file('documentos') as $doc) {
-                $ruta = $doc->store('encuestas/documentos', 'public');
+                $ruta = $doc->store('encuestas/documentos', 'uploads');
                 DB::table('TblD_EncuestaDocumentos')->insert([
                     'IDEncuesta' => $idEncuesta,
                     'RutaArchivo' => $ruta,
@@ -146,7 +146,7 @@ class EncuestasController extends Controller
     {
         $foto = DB::table('TblD_EncuestaFotos')->where('IDFoto', $idFoto)->first();
         if ($foto) {
-            Storage::disk('public')->delete($foto->RutaArchivo);
+            Storage::disk('uploads')->delete($foto->RutaArchivo);
             DB::table('TblD_EncuestaFotos')->where('IDFoto', $idFoto)->delete();
         }
         return response()->json(['success' => true]);
@@ -159,7 +159,7 @@ class EncuestasController extends Controller
     {
         $doc = DB::table('TblD_EncuestaDocumentos')->where('IDDocumento', $idDocumento)->first();
         if ($doc) {
-            Storage::disk('public')->delete($doc->RutaArchivo);
+            Storage::disk('uploads')->delete($doc->RutaArchivo);
             DB::table('TblD_EncuestaDocumentos')->where('IDDocumento', $idDocumento)->delete();
         }
         return response()->json(['success' => true]);
@@ -173,11 +173,11 @@ class EncuestasController extends Controller
     {
         $fotos = DB::table('TblD_EncuestaFotos')->where('IDEncuesta', $id)->get();
         foreach ($fotos as $f) {
-            Storage::disk('public')->delete($f->RutaArchivo);
+            Storage::disk('uploads')->delete($f->RutaArchivo);
         }
         $docs = DB::table('TblD_EncuestaDocumentos')->where('IDEncuesta', $id)->get();
         foreach ($docs as $d) {
-            Storage::disk('public')->delete($d->RutaArchivo);
+            Storage::disk('uploads')->delete($d->RutaArchivo);
         }
 
         DB::table('TblD_EncuestaFotos')->where('IDEncuesta', $id)->delete();

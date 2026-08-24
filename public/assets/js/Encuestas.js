@@ -89,6 +89,13 @@ var EncuestasModule = (function () {
 
     // ── Editar: precarga datos + lista de archivos ya subidos ──
     var editarEncuesta = function (id) {
+        // IMPORTANTE: limpia el formulario (incluidos los <input type="file">)
+        // ANTES de precargar los datos. Sin esto, si ya habias elegido un
+        // archivo en una edicion anterior, el navegador lo deja "seleccionado"
+        // en el input, y al guardar se vuelve a subir como si fuera nuevo,
+        // duplicando el ultimo archivo.
+        $('#formEncuesta')[0].reset();
+
         $.get(API + 'getEncuestaById/' + id, function (e) {
             $('#hddIdEncuestaActual').val(e.IDEncuesta);
             $('#txtFechaVisita').val(e.FechaVisita);
@@ -101,7 +108,7 @@ var EncuestasModule = (function () {
             e.fotos.forEach(function (f) {
                 $prevFotos.append(
                     '<div class="d-inline-block mr-2 mb-2 text-center" style="width:90px;">' +
-                    '<img src="/storage/' + f.ruta + '" class="img-thumbnail" style="height:70px;object-fit:cover;">' +
+                    '<img src="/uploads/' + f.ruta + '" class="img-thumbnail" style="height:70px;object-fit:cover;">' +
                     '<button type="button" class="btn btn-xs btn-danger btn-block mt-1" ' +
                     'onclick="EncuestasModule.eliminarFotoExistente(' + f.idFoto + ')">' +
                     '<i class="fas fa-trash"></i></button></div>'
@@ -112,7 +119,7 @@ var EncuestasModule = (function () {
             e.documentos.forEach(function (d) {
                 $prevDocs.append(
                     '<div class="d-flex align-items-center justify-content-between border rounded p-2 mb-1">' +
-                    '<a href="/storage/' + d.ruta + '" target="_blank"><i class="fas fa-file-alt mr-1"></i>' +
+                    '<a href="/uploads/' + d.ruta + '" target="_blank"><i class="fas fa-file-alt mr-1"></i>' +
                     (d.nombre || 'Documento') + '</a>' +
                     '<button type="button" class="btn btn-xs btn-danger" ' +
                     'onclick="EncuestasModule.eliminarDocumentoExistente(' + d.idDocumento + ')">' +

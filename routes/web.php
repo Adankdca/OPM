@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ObrasController;
 use App\Http\Controllers\EncuestasController;
+use App\Http\Controllers\ContratosController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +53,7 @@ Route::prefix('api/Obras')->middleware('login.required')->group(function () {
     Route::get('/getAcciones', [ObrasController::class, 'getAcciones']);
     Route::get('/getAccionById/{idAccion}', [ObrasController::class, 'getAccionById']);
     Route::post('/guardarAccion', [ObrasController::class, 'guardarAccion']);
+    Route::delete('/eliminarAccion/{idAccion}', [ObrasController::class, 'eliminarAccion']);
     Route::get('/getAniosAccion/{idobra}', [ObrasController::class, 'getAniosAccion']);
     Route::get('/getTipoEjecucion', [ObrasController::class, 'getTipoEjecucion']);
     Route::get('/getTipoAccion', [ObrasController::class, 'getTipoAccion']);
@@ -71,6 +73,30 @@ Route::prefix('api/Obras')->middleware('login.required')->group(function () {
     Route::get('/getCOCIById/{idCoci}', [ObrasController::class, 'getCOCIById']);
     Route::post('/guardarCOCI', [ObrasController::class, 'guardarCOCI']);
     Route::delete('/eliminarCOCI/{idCoci}', [ObrasController::class, 'eliminarCOCI']);
+
+    // Asignar Contrato (submodal de Acciones, consume el modulo Contratos)
+    Route::get('/getContratosDisponibles', [ObrasController::class, 'getContratosDisponibles']);
+    Route::post('/asignarContrato', [ObrasController::class, 'asignarContrato']);
+    Route::post('/quitarContrato/{idAccion}', [ObrasController::class, 'quitarContrato']);
+});
+
+// ══════════════════════════════════════════════════════════════
+// Modulo Contratos
+// ══════════════════════════════════════════════════════════════
+Route::get('/contratos', function () {
+    return view('contratos');
+})->middleware('login.required')->name('contratos.index');
+
+Route::prefix('api/Contratos')->middleware('login.required')->group(function () {
+    Route::get('/getContratos', [ContratosController::class, 'getContratos']);
+    Route::get('/getContratoById/{idContrato}', [ContratosController::class, 'getContratoById']);
+    Route::post('/guardarContrato', [ContratosController::class, 'guardarContrato']);
+    Route::delete('/eliminarContrato/{idContrato}', [ContratosController::class, 'eliminarContrato']);
+    Route::get('/descargarArchivo', [ContratosController::class, 'descargarArchivo']);
+    Route::get('/getContratistas', [ContratosController::class, 'getContratistas']);
+    Route::get('/getTipoOrden', [ContratosController::class, 'getTipoOrden']);
+    Route::get('/getTipoContrato', [ContratosController::class, 'getTipoContrato']);
+    Route::get('/getConceptoContratado', [ContratosController::class, 'getConceptoContratado']);
 });
 
 // ══════════════════════════════════════════════════════════════

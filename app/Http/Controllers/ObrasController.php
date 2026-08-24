@@ -8,26 +8,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Equivalente a Ceduver.Controllers.ObrasController (ApiController de .NET).
  *
- * DIFERENCIAS CLAVE respecto a tu controller original en C#:
  *
- * 1. En C# abrías la conexión a mano con "new SqlConnection(...)" y Dapper.
- *    En Laravel, la conexión ya está configurada UNA VEZ en config/database.php
- *    (leyendo tu .env), así que aquí solo se usa DB::select() / DB::table()
- *    directo, sin abrir/cerrar conexión manualmente.
  *
- * 2. Dapper mapeaba el resultado del SQL a una clase C# (ObraDTO).
- *    Aquí DB::select() ya regresa un array de objetos con las mismas
- *    propiedades que vienen del alias del SELECT (idobra, noObra, etc.),
- *    así que ni siquiera necesitamos una clase DTO aparte: el propio
- *    resultado del query ya trae los nombres correctos.
- *
- * 3. [HttpGet]/[Route("getObras")] de .NET Web API se convierte en una
- *    ruta normal registrada en routes/web.php (lo verás en ese archivo).
- *
- * Por ahora solo se migran los 3 endpoints de la pantalla de listado
- * (getObras, getRubros, getAnios) -- el resto de los 36 endpoints del
- * controller original (guardarObra, getAcciones, COCI, etc.) se van
- * agregando uno por uno conforme migres cada pantalla, tal como acordamos.
+ 
  */
 class ObrasController extends Controller
 {
@@ -44,10 +27,6 @@ class ObrasController extends Controller
         $numObra  = $request->query('numObra', '');
 
         // NOTA: igual que en el original, se usa SQL "crudo" (DB::select)
-        // en vez de Eloquent puro, porque el query mezcla funciones
-        // personalizadas (FinanciamientoObraproyecto, localidadObraproyecto,
-        // ConteoAcciones), SUM() con GROUP BY, y un subquery con GROUP_CONCAT.
-        // Ese tipo de SQL "a la medida" es exactamente para lo que sirve
         // DB::select() -- Eloquent es mejor para CRUD simple, no para esto.
         $sql = "
             SELECT
@@ -142,20 +121,9 @@ class ObrasController extends Controller
     // AUTOCOMPLETE (3 endpoints)
     //
     // Los 3 metodos siguen exactamente el mismo patron del original en
-    // C#, así que se explica una sola vez aquí:
+    // C#, 
     //
-    // - $request->query('term', '')  ==  string term = "" del parametro
-    //   de la firma del metodo en C# (mismo concepto, sintaxis distinta).
-    // - ->distinct()  ==  SELECT DISTINCT
-    // - ->limit(20)   ==  TOP 20  (en MySQL el LIMIT va al final, no al
-    //   inicio del SELECT como en SQL Server)
-    // - ->pluck('columna')  es la pieza clave: en vez de traer objetos
-    //   completos como en getRubros/getAnios, pluck() regresa SOLO los
-    //   valores de esa columna, como una lista plana de strings.
-    //   Esto es exactamente lo que hacia con.Query<string>(sql,...) en tu
-    //   Dapper original -- y es indispensable aqui porque tu Obras.js
-    //   (funcion crearAutocomplete, linea ~96) espera un arreglo de
-    //   strings tal cual: ["OT001","OT002",...], NO objetos {valor:"..."}.
+    
     // ══════════════════════════════════════════════════════════════
 
     /**
@@ -349,17 +317,7 @@ class ObrasController extends Controller
      * POST /api/obras/guardarObra
      * Equivalente a GuardarObra(ModelObra.ObraSaveDTO m).
      *
-     * DIFERENCIA IMPORTANTE con el C# original: aqui NO se usa el Modelo
-     * Eloquent (Obraproyecto::create/update) sino DB::table()->insert()/
-     * update(), por la misma razon que en getObras -- el INSERT trae
-     * columnas fijas (IDtipoejecucion=1, etc.) que no queremos exponer
-     * como $fillable del modelo por descuido en otras pantallas.
-     * Cuando migremos una pantalla que sea CRUD simple de verdad, ahi
-     * si conviene usar el Modelo de lleno.
-     *
-     * Tu Obras.js manda el body como JSON (contentType: 'application/json'),
-     * Laravel lo parsea automaticamente -- por eso $request->input('idobra')
-     * funciona igual que si fuera un form normal, sin configuracion extra.
+     
      */
     public function guardarObra(Request $request)
     {
@@ -518,10 +476,7 @@ class ObrasController extends Controller
      * Igual que guardarObra: un solo endpoint para crear y editar, la
      * variable payload.accion ('add' / cualquier otra cosa) decide el modo.
      *
-     * DIFERENCIA vs guardarObra: aqui SI hay logica extra antes del
-     * INSERT/UPDATE -- hay que garantizar que exista un registro en
-     * TBLD_añoobraproyecto para el año de esta accion (si no existe, se
-     * crea). Se replica tal cual la logica de tu C# original.
+    
      */
     public function guardarAccion(Request $request)
     {
@@ -620,6 +575,34 @@ class ObrasController extends Controller
         DB::table('TblD_Acciones')
             ->where('IDAcciones', $idAccion)
             ->update($campos);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * DELETE /api/obras/eliminarAccion/{idAccion}
+     * El JS (eliminarAccion() en Obras.js) advierte "verifique que no
+     * tenga inversion registrada" -- igual que eliminarOrigen(), se
+     * valida contra TBLD_Financiamientoinversion antes de borrar, para
+     * no dejar huerfanos los registros de Origen de Inversion / COCI
+     * que ya dependen de esta accion.
+     */
+    public function eliminarAccion($idAccion)
+    {
+        $tieneInversion = DB::table('TBLD_Financiamientoinversion')
+            ->where('IDAcciones', $idAccion)
+            ->exists();
+
+        if ($tieneInversion) {
+            return response()->json(
+                'No puede eliminar. La acción tiene Origen de Inversión registrado.',
+                400
+            );
+        }
+
+        // Si la accion tenia un contrato asignado, no hace falta desasignarlo
+        // aparte -- se borra junto con la fila completa de TblD_Acciones.
+        DB::table('TblD_Acciones')->where('IDAcciones', $idAccion)->delete();
 
         return response()->json(['success' => true]);
     }
@@ -727,13 +710,7 @@ class ObrasController extends Controller
     /**
      * GET /api/obras/getOrigenById/{idFuente}
      *
-     * NOTA -- corrige un bug real del C# original: ahi la misma columna
-     * alias "idFuente" se usaba dos veces (IdFuenteinversion Y
-     * IDProgramafinanciamiento), y la segunda pisaba a la primera.
-     * Por casualidad eso "funcionaba" porque el JS solo necesitaba el
-     * segundo valor -- pero es fragil y confuso. Aqui se usan 3 nombres
-     * distintos y sin ambiguedad. Esto obliga a ajustar UNA linea del
-     * JS (ver nota que te doy aparte).
+     
      */
     public function getOrigenById($idFuente)
     {
@@ -869,6 +846,67 @@ class ObrasController extends Controller
         return response()->json($lista);
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // ASIGNAR CONTRATO A UNA ACCIÓN (usa el modulo Contratos)
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/obras/getContratosDisponibles?term=xxx
+     * Autocomplete que alimenta el buscador del panel "Asignar Contrato"
+     * dentro del modal de Acciones (ver Obras.js -> abrirContrato()).
+     */
+    public function getContratosDisponibles(Request $request)
+    {
+        $term = $request->query('term', '');
+
+        $lista = DB::table('TBLD_Contrato')
+            ->select(
+                'IDContrato as idContrato',
+                'CON_Contrato as numContrato',
+                'CON_Descripcion as descripcion'
+            )
+            ->where(function ($q) use ($term) {
+                $q->where('CON_Contrato', 'like', '%' . $term . '%')
+                    ->orWhere('CON_Descripcion', 'like', '%' . $term . '%');
+            })
+            ->orderBy('CON_Contrato')
+            ->limit(20)
+            ->get();
+
+        return response()->json($lista);
+    }
+
+    /**
+     * POST /api/obras/asignarContrato { idAccion, idContrato }
+     * Vincula un contrato ya existente (modulo Contratos) con una accion.
+     */
+    public function asignarContrato(Request $request)
+    {
+        $idAccion = (int) $request->input('idAccion');
+        $idContrato = (int) $request->input('idContrato');
+
+        DB::table('TblD_Acciones')
+            ->where('IDAcciones', $idAccion)
+            ->update(['IDContrato' => $idContrato]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * POST /api/obras/quitarContrato/{idAccion}
+     * Desvincula el contrato de la accion (lo regresa a 0, igual que la
+     * limpieza que hace ContratosController::eliminarContrato al borrar
+     * un contrato que ya estaba asignado).
+     */
+    public function quitarContrato($idAccion)
+    {
+        DB::table('TblD_Acciones')
+            ->where('IDAcciones', $idAccion)
+            ->update(['IDContrato' => 0]);
+
+        return response()->json(['success' => true]);
+    }
+
     /**
      * Recalcula OP_InversioMunicipal / OP_InversionEstatal / OP_InversionFederal
      * en TBLD_añoobraproyecto, sumando VW_Sumainversiones por origen
@@ -994,12 +1032,7 @@ class ObrasController extends Controller
     }
 
     /**
-     * Replica SumaInversionCOCI() del C# original:
-     * 1) Suma todos los COCI de esa fuente -> sobreescribe FI_Inversion
-     *    en TBLD_Financiamientoinversion (el monto del Origen pasa a ser
-     *    la suma de sus claves presupuestales).
-     * 2) Dispara sumaInversion() para recalcular municipal/estatal/federal
-     *    de la obra+año, igual que hace guardarOrigen().
+     
      */
     private function sumaInversionCoci($idFuente)
     {
