@@ -417,7 +417,8 @@ class ObrasController extends Controller
                 A.LCL_Nombre       AS localidad,
                 A.IDLocalidad      AS idLocalidad,
                 C.CON_Contrato     AS contrato,
-                A.IDContrato       AS idContrato
+                A.IDContrato       AS idContrato,
+                A.IDTipoOrigen     AS idTipoOrigen
             FROM TblD_Acciones A
             LEFT JOIN TBLC_Tipoejecucion TE ON A.IDtipoejecucion = TE.IDtipoejecucion
             LEFT JOIN TblC_TipoAccion    TA ON A.IDTipoaccion    = TA.IDTipoaccion
@@ -463,7 +464,8 @@ class ObrasController extends Controller
                 'A.subfuncion',
                 'A.programa',
                 'A.subprograma',
-                'A.proyecto'
+                'A.proyecto',
+                'A.IDTipoOrigen as idTipoOrigen'
             )
             ->where('A.IDAcciones', $idAccion)
             ->first();
@@ -482,7 +484,7 @@ class ObrasController extends Controller
     {
         $idobra = (int) $request->input('idobra');
         $anio = (int) $request->input('anio');
-        $cveMun = $request->input('cveMunicipio', '061');
+        $cveMun = $request->input('cveMunicipio', '031');
 
         // ── 1) Garantizar que exista TBLD_añoobraproyecto para este año ──
         $anioObra = DB::table('TBLD_añoobraproyecto')
@@ -549,6 +551,7 @@ class ObrasController extends Controller
             'programa' => $request->input('programa'),
             'subprograma' => $request->input('subprograma'),
             'proyecto' => $request->input('proyecto'),
+            'IDTipoOrigen' => $request->input('idTipoOrigen', 1),
         ];
 
         if ($request->input('accion') === 'add') {
@@ -564,7 +567,7 @@ class ObrasController extends Controller
                 'IDstatusaccion' => 1,
                 'Metamodificada' => 0,
                 'CveMunicipio' => $cveMun,
-                'MNP_Nombre' => 'OCOZOCOAUTLA DE ESPINOSA',
+                'MNP_Nombre' => 'CHILÓN',
                 'IDstatusobra' => 12,
             ]), 'IDAcciones');
 
@@ -656,8 +659,9 @@ class ObrasController extends Controller
     public function getLocalidades()
     {
         $lista = DB::table('TBLC_Localidades')
-            ->select('IDLocalidad as id', 'LCL_Nombre as nombre')
-            ->where('CveMunicipio', '061')
+           // ->select('IDLocalidad as id', 'LCL_Nombre as nombre')
+            ->select('IDLocalidad as id', DB::raw("CONCAT(LCL_Nombre, ' (', CveLocalidades, ')') as nombre"))
+            ->where('CveMunicipio', '031')
             ->orderBy('LCL_Nombre')
             ->get();
 
@@ -712,6 +716,21 @@ class ObrasController extends Controller
      *
      
      */
+    // public function getOrigenById($idFuente)
+    // {
+    //     $data = DB::table('TBLD_Financiamientoinversion')
+    //         ->select(
+    //             'IdFuenteinversion as idRegistro',
+    //             'IdOrigenfuente as idOrigen',
+    //             'IDProgramafinanciamiento as idFuenteFinanciamiento',
+    //             'FI_Inversion as inversion',
+    //             DB::raw("DATE_FORMAT(Fechavencimiento, '%d/%m/%Y') as fechaVencimiento")
+    //         )
+    //         ->where('IdFuenteinversion', $idFuente)
+    //         ->first();
+
+    //     return response()->json($data);
+    // }
     public function getOrigenById($idFuente)
     {
         $data = DB::table('TBLD_Financiamientoinversion')
@@ -720,7 +739,7 @@ class ObrasController extends Controller
                 'IdOrigenfuente as idOrigen',
                 'IDProgramafinanciamiento as idFuenteFinanciamiento',
                 'FI_Inversion as inversion',
-                DB::raw("DATE_FORMAT(Fechavencimiento, '%d/%m/%Y') as fechaVencimiento")
+                DB::raw("DATE_FORMAT(Fechavencimiento, '%Y-%m-%d') as fechaVencimiento")
             )
             ->where('IdFuenteinversion', $idFuente)
             ->first();
@@ -737,14 +756,26 @@ class ObrasController extends Controller
         $idOrigen = (int) $request->input('idOrigen', 0);
         $idFuenteFin = (int) $request->input('idFuenteFinanciamiento', 0);
         $inversion = (float) $request->input('inversion', 0);
+        // $fVcto = $request->input('fechaVencimiento', '');
+
+        // // Convertir dd/mm/yyyy -> Y-m-d para MySQL
+        // $vctoMysql = null;
+        // if ($fVcto) {
+        //     $partes = explode('/', $fVcto);
+        //     if (count($partes) === 3) {
+        //         $vctoMysql = "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+        //     }
+        // }
         $fVcto = $request->input('fechaVencimiento', '');
 
-        // Convertir dd/mm/yyyy -> Y-m-d para MySQL
+        // Con <input type="date"> el navegador ya manda YYYY-MM-DD directo.
         $vctoMysql = null;
         if ($fVcto) {
-            $partes = explode('/', $fVcto);
-            if (count($partes) === 3) {
-                $vctoMysql = "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+            $partes = explode('-', $fVcto);
+            if (count($partes) === 3 && checkdate((int) $partes[1], (int) $partes[2], (int) $partes[0])) {
+                $vctoMysql = $fVcto;
+            } else {
+                return response()->json('La fecha de vencimiento no es válida.', 400);
             }
         }
 

@@ -12,5 +12,10 @@ class Accion extends Model
     protected $fillable = [
         'IDobraproyecto', 'IDañoobraproyecto', 'OP_Año', 'AC_Accion',
         'AC_Descripcionaccion', 'IDContrato', 'IDstatusobra', 'IDTipoaccion',
+        'IDTipoOrigen', // ← nuevo
     ];
+    public function tipoOrigen()
+    {
+        return $this->belongsTo(TipoOrigen::class, 'IDTipoOrigen', 'IDTipoOrigen');
+    }
 }

@@ -11,6 +11,9 @@ class RequireLogin
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->session()->has('usuario.id')) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['message' => 'Sesión expirada'], 401);
+            }
             return redirect()->route('login');
         }
 

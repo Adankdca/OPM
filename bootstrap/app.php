@@ -17,4 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
+        // Sesión/token expirado (CSRF) -> mandar a login sin mostrar error 419
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            return redirect()->route('login')
+                ->with('mensaje', 'Tu sesión expiró, vuelve a iniciar sesión.');
+        });
+
+        // Por si el middleware login.required detecta que ya no hay sesión activa
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            return redirect()->route('login');
+        });
     })->create();

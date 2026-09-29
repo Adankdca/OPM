@@ -225,10 +225,10 @@ const ObrasModule = (function () {
                 '<td class="text-right font-weight-bold text-danger">' + fmt(o.total) + '</td>' +
                 '<td class="text-center" style="white-space:nowrap;">' +
                 // Encuestas de Seguimiento (modulo nuevo, beta)
-                '<button type="button" class="btn btn-sm btn-icon btn-light-warning mr-1" ' +
+                /*'<button type="button" class="btn btn-sm btn-icon btn-light-warning mr-1" ' +
                 'onclick="EncuestasModule.verEncuestas(' + o.idobra + ')" title="Encuestas de Seguimiento">' +
                 '<i class="fas fa-clipboard-check"></i>' +
-                '</button>' +
+                '</button>' +*/
                 // Acciones — muestra conteo como badge encima del ícono
                 '<button type="button" class="btn btn-sm btn-icon btn-light-success mr-1 position-relative" ' +
                 'onclick="ObrasModule.verAcciones(' + o.idobra + ')" title="Acciones (' + o.numAcciones + ')">' +
@@ -573,7 +573,7 @@ const ObrasModule = (function () {
             idLocalidad: idLocalidad,
             idLocalidadDetalle: idDetalle,
             accion: accion,
-            cveMunicipio: '061'
+            cveMunicipio: '031'
         };
 
         $.ajax({
@@ -677,6 +677,16 @@ const ObrasModule = (function () {
                 $('#cboTipoAccion').append('<option value="' + i.id + '">' + i.nombre + '</option>');
             });
         });
+        // Tipo Origen (Obra / Programa) -- define qué cuestionario de
+        // Encuestas le corresponde a esta acción. OJO: esta ruta vive en
+        // el módulo de Encuestas, no en el de Obras, por eso NO uso la
+        // constante API de aquí arriba -- se arma la URL completa.
+        $.get('api/Encuestas/getTipoOrigen', function (res) {
+            $('#cboTipoOrigenAccion').empty();
+            res.forEach(function (i) {
+                $('#cboTipoOrigenAccion').append('<option value="' + i.id + '">' + i.nombre + '</option>');
+            });
+        });
         // Localidades
         $.get(API + 'getLocalidades', function (res) {
             $('#cboLocalidadAccion').empty().append('<option value="">(SELECCIONE)</option>');
@@ -693,8 +703,17 @@ const ObrasModule = (function () {
         });
     };
 
+    // Traduce idTipoOrigen (1/2) a texto + color de badge -- mismo criterio
+    // que usa EncuestasModule.badgeOrigen() para que se vea consistente.
+    var badgeOrigenAccion = function (idTipoOrigen) {
+        var esPrograma = String(idTipoOrigen) === '2';
+        var texto = esPrograma ? 'Programa' : 'Obra';
+        var clase = esPrograma ? 'badge-info' : 'badge-success';
+        return '<span class="badge ' + clase + '">' + texto + '</span>';
+    };
+
     var cargarTablaAcciones = function (idobra, anio) {
-        $('#tbodyAcciones').html('<tr><td colspan="7" class="text-center py-3">' +
+        $('#tbodyAcciones').html('<tr><td colspan="8" class="text-center py-3">' +
             '<i class="fas fa-spinner fa-spin text-primary"></i> Cargando...</td></tr>');
 
         $.get(API + 'getAcciones', { idobra: idobra, anio: anio })
@@ -703,7 +722,7 @@ const ObrasModule = (function () {
                 $('#badgeTotalAcciones').text(data.length);
 
                 if (!data.length) {
-                    $tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">' +
+                    $tbody.html('<tr><td colspan="8" class="text-center text-muted py-4">' +
                         'Sin acciones registradas</td></tr>');
                     return;
                 }
@@ -716,6 +735,7 @@ const ObrasModule = (function () {
                     $tbody.append(
                         '<tr>' +
                         '<td><span class="badge badge-primary">' + (a.anio || '') + '</span></td>' +
+                        '<td>' + badgeOrigenAccion(a.idTipoOrigen) + '</td>' +
                         '<td class="small">' + (a.tipoEjecucion || '') + '</td>' +
                         '<td style="font-size:0.82rem; max-width:220px;" title="' + (a.accion || '') + '">' +
                         (a.accion || '').substring(0, 60) + ((a.accion || '').length > 60 ? '...' : '') +
@@ -724,6 +744,9 @@ const ObrasModule = (function () {
                         '<td class="small">' + (a.localidad || '') + '</td>' +
                         '<td>' + contratoHtml + '</td>' +
                         '<td class="text-center">' +
+                        '<button type="button" class="btn btn-xs btn-icon btn-light-info mr-1" ' +
+                        'onclick="EncuestasModule.verEncuestas(' + a.idAccion + ',' + a.idTipoOrigen + ',\'' + (a.accion||'').replace(/'/g,'') + '\')" title="Encuestas">' +
+                        '<i class="fas fa-clipboard-check"></i></button>' +
                         '<button type="button" class="btn btn-xs btn-icon btn-light-success mr-1" ' +
                         'onclick="ObrasModule.abrirOrigenes(' + a.idAccion + ')" title="Inversión">' +
                         '<i class="fas fa-dollar-sign"></i>' +
@@ -773,6 +796,7 @@ const ObrasModule = (function () {
             $('#cboAnioAccion').val(a.anio);
             $('#cboTipoEjecucionAccion').val(a.idTipoEjecucion);
             $('#cboTipoAccion').val(a.idTipoAccion);
+            $('#cboTipoOrigenAccion').val(a.idTipoOrigen);
             $('#cboLocalidadAccion').val(a.idLocalidad);
             $('#cboSubrubroEspecifico').val(a.idSubrubroEspecifico || '0');
             $('#txtAccion').val(a.accion);
@@ -812,6 +836,7 @@ const ObrasModule = (function () {
             idTipoEjecucion: $('#cboTipoEjecucionAccion').val(),
             accionTexto: $('#txtAccion').val().toUpperCase(),
             idTipoAccion: $('#cboTipoAccion').val() || '0',
+            idTipoOrigen: $('#cboTipoOrigenAccion').val() || '1',
             idSubrubroEspecifico: $('#cboSubrubroEspecifico').val() || '0',
             idLocalidad: $('#cboLocalidadAccion').val() || '0',
             beneficiarios: $('#txtBeneficiariosAccion').val() || '0',
@@ -827,7 +852,7 @@ const ObrasModule = (function () {
             programa: $('#txtProgramaAccion').val(),
             subprograma: $('#txtSubprogramaAccion').val(),
             proyecto: $('#txtProyectoAccion').val(),
-            cveMunicipio: '061'
+            cveMunicipio: '031'
         };
 
         $.ajax({
@@ -871,7 +896,7 @@ const ObrasModule = (function () {
                     $('#badgeTotalAcciones').text(data.length);
 
                     if (!data.length) {
-                        $tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">' +
+                        $tbody.html('<tr><td colspan="8" class="text-center text-muted py-4">' +
                             'Sin acciones registradas</td></tr>');
                     } else {
                         data.forEach(function (a) {
@@ -881,6 +906,7 @@ const ObrasModule = (function () {
                             $tbody.append(
                                 '<tr>' +
                                 '<td><span class="badge badge-primary">' + (a.anio || '') + '</span></td>' +
+                                '<td>' + badgeOrigenAccion(a.idTipoOrigen) + '</td>' +
                                 '<td class="small">' + (a.tipoEjecucion || '') + '</td>' +
                                 '<td style="font-size:0.82rem; max-width:220px;" title="' + (a.accion || '') + '">' +
                                 (a.accion || '').substring(0, 60) +
@@ -889,6 +915,9 @@ const ObrasModule = (function () {
                                 '<td class="small">' + (a.localidad || '') + '</td>' +
                                 '<td>' + contratoHtml + '</td>' +
                                 '<td class="text-center">' +
+                                '<button type="button" class="btn btn-xs btn-icon btn-light-info mr-1" ' +
+                                'onclick="EncuestasModule.verEncuestas(' + a.idAccion + ',' + a.idTipoOrigen + ',\'' + (a.accion||'').replace(/'/g,'') + '\')" title="Encuestas">' +
+                                '<i class="fas fa-clipboard-check"></i></button>' +
                                 '<button type="button" class="btn btn-xs btn-icon btn-light-success mr-1" ' +
                                 'onclick="ObrasModule.abrirOrigenes(' + a.idAccion + ')" title="Inversión">' +
                                 '<i class="fas fa-dollar-sign"></i></button>' +
@@ -1572,7 +1601,7 @@ const ObrasModule = (function () {
         eliminarLocalidad: eliminarLocalidad,
         guardarLocalidad: guardarLocalidad,
 
-        verAcciones: verAcciones,
+        // verAcciones: verAcciones,
         editarAccion: editarAccion,
         eliminarAccion: eliminarAccion,
         abrirOrigenes: abrirOrigenes,

@@ -301,6 +301,7 @@
                                     <thead class="thead-light">
                                         <tr>
                                             <th>Año</th>
+                                            <th>Origen</th>
                                             <th>Tipo Ejec.</th>
                                             <th>Acción</th>
                                             <th>Tipo Acción</th>
@@ -348,6 +349,12 @@
                                     <div class="form-group">
                                         <label class="font-weight-bold">Tipo de Acción:</label>
                                         <select class="form-control" id="cboTipoAccion"></select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold required-field">Origen:</label>
+                                        <select class="form-control" id="cboTipoOrigenAccion"></select>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -523,7 +530,8 @@
                                         <div class="col-md-2">
                                             <div class="form-group mb-0">
                                                 <label class="font-weight-bold small required-field">Fecha Vencimiento:</label>
-                                                <input type="text" class="form-control form-control-sm fecha" id="txtFechaVencimientoOrigen" placeholder="dd/mm/aaaa">
+                                                <!-- <input type="text" class="form-control form-control-sm fecha" id="txtFechaVencimientoOrigen" placeholder="dd/mm/aaaa"> -->
+                                                 <input type="date" class="form-control form-control-sm" id="txtFechaVencimientoOrigen">
                                             </div>
                                         </div>
                                         <div class="col-md-2 d-flex">
@@ -697,8 +705,15 @@
             </div>
             <div class="modal-body" style="background:#f5f5f5; max-height:80vh; overflow-y:auto;">
 
-                <input type="hidden" id="hddIdObraEncuestas">
+                <input type="hidden" id="hddIdAccionEncuestas">
+                <input type="hidden" id="hddIdTipoOrigenEncuestas">
                 <input type="hidden" id="hddIdEncuestaActual">
+                <input type="hidden" id="hddAccionMovEncuesta" value="add">
+
+                <div class="alert alert-light-warning mb-3 py-2 px-3">
+                    <i class="fas fa-clipboard-check text-warning mr-2"></i>
+                    <strong id="lblAccionEncuestas"></strong>
+                </div>
 
                 {{-- ═══ Grid: bitacora de encuestas de la obra ═══ --}}
                 <div class="card card-custom shadow-sm mb-3">
@@ -721,6 +736,7 @@
                                         <th>Fecha Visita</th>
                                         <th>% Avance</th>
                                         <th>Estatus</th>
+                                        <th>Origen</th>
                                         <th>Encuestador</th>
                                         <th class="text-center">Fotos</th>
                                         <th class="text-center">Docs</th>
@@ -749,19 +765,25 @@
                             --}}
                             <form id="formEncuesta" enctype="multipart/form-data">
                                 <div class="row">
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Folio:</label>
+                                            <input type="text" class="form-control" id="txtFolio">
+                                        </div>
+                                    </div>
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label class="font-weight-bold required-field">Fecha de Visita:</label>
                                             <input type="date" class="form-control" id="txtFechaVisita">
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="form-group">
                                             <label class="font-weight-bold required-field">% Avance:</label>
                                             <input type="number" class="form-control" id="txtPorcentajeAvance" min="0" max="100" step="0.01">
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Estatus:</label>
                                             <select class="form-control" id="cboEstatusEncuesta"></select>
@@ -774,6 +796,104 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Situación Encontrada:</label>
+                                            <select class="form-control" id="cboSituacionEncontrada"></select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Detalle Situación Encontrada:</label>
+                                            <input type="text" class="form-control" id="txtDetalleSituacionEncontrada"
+                                                   placeholder="Describe lo observado en campo...">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Recomendación:</label>
+                                            <input type="text" class="form-control" id="txtRecomendacion">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Dirección del Proyecto:</label>
+                                            <input type="text" class="form-control" id="txtDireccion"
+                                                   placeholder="Solo aplica a fichas tipo Programa">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Organismo Público:</label>
+                                            <input type="text" class="form-control" id="txtOrganismoPublico">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Inversión Programada:</label>
+                                            <input type="number" class="form-control" id="txtInversionProgramada" step="0.01">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Beneficiarios:</label>
+                                            <input type="number" class="form-control" id="txtBeneficiariosEncuesta">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Tipo Beneficiario:</label>
+                                            <input type="text" class="form-control" id="txtTipoBeneficiarioEncuesta">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <label class="font-weight-bold text-warning">Datos de la persona que proporcionó la información:</label>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="text-muted small">Nombre:</label>
+                                            <input type="text" class="form-control form-control-sm" id="txtInformanteNombre">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="text-muted small">Domicilio:</label>
+                                            <input type="text" class="form-control form-control-sm" id="txtInformanteDomicilio">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="text-muted small">Sexo:</label>
+                                            <select class="form-control form-control-sm" id="cboInformanteSexo">
+                                                <option value="">(N/A)</option>
+                                                <option value="M">Masculino</option>
+                                                <option value="F">Femenino</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="text-muted small">Edad:</label>
+                                            <input type="number" class="form-control form-control-sm" id="txtInformanteEdad">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <label class="font-weight-bold text-warning">Cuestionario:</label>
+                                <div id="cuestionarioEncuesta" class="mb-3"></div>
+
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="form-group">

@@ -103,11 +103,16 @@ Route::prefix('api/Contratos')->middleware('login.required')->group(function () 
 // Modulo NUEVO (beta): Encuestas de Seguimiento de Obra
 // ══════════════════════════════════════════════════════════════
 Route::prefix('api/Encuestas')->middleware('login.required')->group(function () {
-    Route::get('/getEncuestas/{idobra}', [EncuestasController::class, 'getEncuestas']);
+    Route::get('/getTipoOrigen', [EncuestasController::class, 'getTipoOrigen']);
+    Route::get('/getEstatusEncuesta', [EncuestasController::class, 'getEstatusEncuesta']);
+    Route::get('/getSituacionEncontrada', [EncuestasController::class, 'getSituacionEncontrada']);
+    Route::get('/getPreguntas/{idTipoOrigen}', [EncuestasController::class, 'getPreguntas']);
+    Route::get('/getEncuestas/{idAccion}', [EncuestasController::class, 'getEncuestas']); // antes {idobra}
     Route::get('/getEncuestaById/{id}', [EncuestasController::class, 'getEncuestaById']);
     Route::post('/guardarEncuesta', [EncuestasController::class, 'guardarEncuesta']);
     Route::delete('/eliminarEncuesta/{id}', [EncuestasController::class, 'eliminarEncuesta']);
     Route::delete('/eliminarFoto/{idFoto}', [EncuestasController::class, 'eliminarFoto']);
     Route::delete('/eliminarDocumento/{idDocumento}', [EncuestasController::class, 'eliminarDocumento']);
-    Route::get('/getEstatusEncuesta', [EncuestasController::class, 'getEstatusEncuesta']);
+    Route::get('/fichaHtml/{idEncuesta}', [EncuestasController::class, 'fichaHtml']);
+    Route::get('/fichaPdf/{idEncuesta}', [EncuestasController::class, 'fichaPdf']);
 });

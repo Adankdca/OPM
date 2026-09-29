@@ -161,14 +161,56 @@
         // cualquier otra razon), en vez de que el usuario vea un JSON feo
         // de error, se le avisa claro y se recarga la pagina sola para
         // que obtenga un token fresco.
+
+        // $(document).ajaxError(function (event, xhr) {
+        //     if (xhr.status === 419) {
+        //         Swal.fire({
+        //             icon: 'warning',
+        //             title: 'Sesión vencida',
+        //             text: 'La página se actualizará para continuar.'
+        //         }).then(function () {
+        //             window.location.reload();
+        //         });
+        //     }
+        // });
+
+        // $(document).ajaxError(function (event, xhr) {
+        //     if (xhr.status === 419 || xhr.status === 401) {
+        //         Swal.fire({
+        //             icon: 'warning',
+        //             title: 'Sesión vencida',
+        //             text: xhr.status === 401
+        //                 ? 'Tu sesión expiró. Serás redirigido al login.'
+        //                 : 'La página se actualizará para continuar.'
+        //         }).then(function () {
+        //             if (xhr.status === 401) {
+        //                 window.location.href = "{{ route('login') }}";
+        //             } else {
+        //                 window.location.reload();
+        //             }
+        //         });
+        //     }
+        // });
+
+        let sesionExpiradaMostrada = false;
+
         $(document).ajaxError(function (event, xhr) {
-            if (xhr.status === 419) {
+            if ((xhr.status === 419 || xhr.status === 401) && !sesionExpiradaMostrada) {
+                sesionExpiradaMostrada = true;
                 Swal.fire({
                     icon: 'warning',
                     title: 'Sesión vencida',
-                    text: 'La página se actualizará para continuar.'
+                    text: xhr.status === 401
+                        ? 'Tu sesión expiró. Serás redirigido al login.'
+                        : 'La página se actualizará para continuar.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
                 }).then(function () {
-                    window.location.reload();
+                    if (xhr.status === 401) {
+                        window.location.replace("{{ route('login') }}");
+                    } else {
+                        window.location.reload();
+                    }
                 });
             }
         });
