@@ -1,0 +1,4 @@
+# Seguridad: en esta carpeta (fotos y documentos subidos) nunca se ejecuta código.
+<FilesMatch "\.(php|phtml|phar|php[0-9]?|pl|py|cgi|sh)$">
+    Require all denied
+</FilesMatch>

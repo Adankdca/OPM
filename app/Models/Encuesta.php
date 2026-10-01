@@ -1,9 +1,4 @@
 <?php
-// ============================================================
-// app/Models/Encuesta.php  (REEMPLAZA tu modelo Encuesta actual, si ya
-// tenías uno -- si no tenías modelo y trabajabas todo con DB::table(),
-// créalo con este contenido)
-// ============================================================
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -15,17 +10,37 @@ class Encuesta extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'IDAcciones', 'Folio', 'FechaVisita', 'PorcentajeAvance', 'IDEstatus',
-        'IDSituacionEncontrada', 'Recomendacion', 'NombreEncuestador', 'Observaciones',
-        'InformanteNombre', 'InformanteDomicilio', 'InformanteSexo', 'InformanteEdad',
-        'InversionProgramada', 'Beneficiarios', 'TipoBeneficiario', 'FechaCreacion',
+        'IDAcciones', 'Folio', 'TipoEncuesta', 'FechaVisita', 'situacionreportada', 'avancefisico', 'foliosrelacionados',
+        'Direccion', 'avanceencontrado', 'IDSituacionEncontrada', 'IDSubsituacionencontrada',
+        'observacionessituacion',
+        'identificacionpersonal', 'nombrecompletopersonal', 'cargopersonal', 'domiciliopersonal',
+        'clavemunicipiopersonal', 'idlocalidadpersonal',
+        'nombreencuestador', 'recomendacionesencuestador', 'situacionencontradaencuestador',
+        'observacionesencuestador',
+        'identificacionperencuestado', 'nombreencuestado', 'sexoencuestado', 'edadencuestado',
+        'parentescoencuestado', 'domicilioencuestado', 'clavemunicipioencuestador', 'idlocalidadencuestador',
+        'nombreencuestadorfinal', 'recomendacionesencuestadorfinal', 'comentariofinal',
+        'FechaCreacion',
     ];
 
-    // OJO: ya NO se relaciona directo con Obraproyecto -- ahora la obra
-    // se conoce siempre a través de la Acción dueña de la encuesta.
     public function accion()
     {
         return $this->belongsTo(Accion::class, 'IDAcciones', 'IDAcciones');
+    }
+
+    public function situacion()
+    {
+        return $this->belongsTo(SituacionEncontrada::class, 'IDSituacionEncontrada', 'IDSituacion');
+    }
+
+    public function subsituacion()
+    {
+        return $this->belongsTo(SubsituacionEncontrada::class, 'IDSubsituacionencontrada', 'IDSubsituacion');
+    }
+
+    public function situacionEncuestador()
+    {
+        return $this->belongsTo(SituacionEncontradaEncuestador::class, 'situacionencontradaencuestador', 'IDSituacionEncuestador');
     }
 
     public function respuestas()

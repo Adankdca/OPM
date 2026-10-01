@@ -1,27 +1,20 @@
 <?php
-// ============================================================
-// app/Models/EncuestaPregunta.php
-// ============================================================
 namespace App\Models;
- 
+
 use Illuminate\Database\Eloquent\Model;
- 
+
 class EncuestaPregunta extends Model
 {
-    protected $table = 'TBLC_EncuestaPreguntas';
+    protected $table = 'tblc_encuestapreguntas';
     protected $primaryKey = 'IDPregunta';
     public $timestamps = false;
- 
+
+    // Bloque: 1 = ENCUESTA 1, 2 = ENCUESTA 2 (ya no depende de Obra/Programa)
     protected $fillable = [
-        'IDTipoOrigen', 'Orden', 'Texto', 'TipoRespuesta',
-        'RequiereJustificacion', 'Activa',
+        'Bloque', 'Orden', 'Texto', 'TipoRespuesta',
+        'RequiereJustificacion', 'EtiquetaJustificacion', 'Obligatoria', 'Activa',
     ];
- 
-    public function tipoOrigen()
-    {
-        return $this->belongsTo(TipoOrigen::class, 'IDTipoOrigen', 'IDTipoOrigen');
-    }
- 
+
     public function respuestas()
     {
         return $this->hasMany(EncuestaRespuesta::class, 'IDPregunta', 'IDPregunta');

@@ -691,8 +691,7 @@
         </div>
     </div>
 </div>
-{{-- ======================= MODAL ENCUESTAS DE SEGUIMIENTO (beta) =======================
-     Pega este bloque completo justo ANTES de @endsection en tu principal.blade.php --}}
+{{-- ======================= MODAL ENCUESTAS DE SEGUIMIENTO (v2: cuestionario general) ======================= --}}
 <div class="modal fade" id="modalEncuestas" tabindex="-1" role="dialog" data-backdrop="static">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
@@ -715,8 +714,8 @@
                     <strong id="lblAccionEncuestas"></strong>
                 </div>
 
-                {{-- ═══ Grid: bitacora de encuestas de la obra ═══ --}}
-                <div class="card card-custom shadow-sm mb-3">
+                {{-- ═══ Grid: bitácora de encuestas de la acción ═══ --}}
+                <div class="card card-custom shadow-sm mb-3" id="panelGridEncuestas">
                     <div class="card-header" style="min-height:50px;">
                         <div class="card-title mb-0">
                             <i class="fas fa-list text-warning mr-2"></i>
@@ -733,14 +732,16 @@
                             <table class="table table-hover table-head-custom table-sm">
                                 <thead class="thead-light">
                                     <tr>
-                                        <th>Fecha Visita</th>
+                                        <th>Folio</th>
+                                        <th>Tipo</th>
+                                        <th>Fecha captura</th>
+                                        <th>Fecha visita</th>
                                         <th>% Avance</th>
-                                        <th>Estatus</th>
-                                        <th>Origen</th>
+                                        <th>Situación</th>
                                         <th>Encuestador</th>
                                         <th class="text-center">Fotos</th>
                                         <th class="text-center">Docs</th>
-                                        <th class="text-center" style="width:110px;">Opciones</th>
+                                        <th class="text-center" style="width:130px;">Opciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbodyEncuestas"></tbody>
@@ -758,172 +759,290 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            {{--
-                                enctype="multipart/form-data" es OBLIGATORIO para que
-                                los <input type="file"> se puedan leer del lado del
-                                servidor. Sin esto, $request->file() siempre viene vacio.
-                            --}}
-                            <form id="formEncuesta" enctype="multipart/form-data">
+                            {{-- enctype multipart es OBLIGATORIO para leer los <input type="file"> en el servidor --}}
+                            <form id="formEncuesta" enctype="multipart/form-data" onsubmit="return false;">
+
+                                <div id="avisoPrecarga" class="alert alert-light-info py-2 px-3 mb-3" style="display:none;"></div>
+
                                 <div class="row">
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Folio:</label>
-                                            <input type="text" class="form-control" id="txtFolio">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold required-field">Fecha de Visita:</label>
-                                            <input type="date" class="form-control" id="txtFechaVisita">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold required-field">% Avance:</label>
-                                            <input type="number" class="form-control" id="txtPorcentajeAvance" min="0" max="100" step="0.01">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Estatus:</label>
-                                            <select class="form-control" id="cboEstatusEncuesta"></select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Encuestador:</label>
-                                            <input type="text" class="form-control" id="txtNombreEncuestador">
-                                        </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold required-field">Tipo de encuesta:</label>
+                                        <select class="form-control" id="cboTipoEncuesta">
+                                            <option value="">Seleccione el tipo</option>
+                                            <option value="INICIO">Inicio</option>
+                                            <option value="PROCESO">En proceso</option>
+                                            <option value="CONCLUSION">Conclusión</option>
+                                        </select>
+                                        <small class="text-muted" id="hintTipo"></small>
                                     </div>
                                 </div>
 
+                                {{-- ── Encabezado (la mayoría son informativos, vienen de la acción) ── --}}
                                 <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Situación Encontrada:</label>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Folio:</label>
+                                        <input type="text" class="form-control" id="txtFolio">
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Dependencia Ejecutora:</label>
+                                        <input type="text" class="form-control" id="txtInfoDependencia" readonly>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Situación Reportada:</label>
+                                        <input type="text" class="form-control" id="txtSituacionReportada">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Municipio:</label>
+                                        <input type="text" class="form-control" id="txtInfoMunicipio" readonly>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Beneficiados:</label>
+                                        <input type="text" class="form-control" id="txtInfoBeneficiados" readonly>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Ejercicio:</label>
+                                        <input type="text" class="form-control" id="txtInfoEjercicio" readonly>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Localidad:</label>
+                                        <input type="text" class="form-control" id="txtInfoLocalidad" readonly>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Inversión Programada:</label>
+                                        <input type="text" class="form-control" id="txtInfoInversion" readonly>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold required-field">Fecha de Visita:</label>
+                                        <input type="date" class="form-control" id="txtFechaVisita">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Programa:</label>
+                                        <input type="text" class="form-control" id="txtInfoPrograma" readonly>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Avance Físico %:</label>
+                                        <input type="number" class="form-control" id="txtAvanceFisico" min="0" max="100" step="0.01">
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold">Folios Relacionados:</label>
+                                        <select class="form-control" id="cboFoliosRelacionados" multiple size="3"></select>
+                                        <small class="text-muted">Ctrl + clic para elegir varios</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 form-group">
+                                        <label class="font-weight-bold">Nombre del Proyecto:</label>
+                                        <textarea class="form-control" id="txtInfoProyecto" rows="3" readonly></textarea>
+                                    </div>
+                                    <div class="col-md-6 form-group">
+                                        <label class="font-weight-bold">Meta:</label>
+                                        <textarea class="form-control" id="txtInfoMeta" rows="3" readonly></textarea>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8 form-group">
+                                        <label class="font-weight-bold">Fuentes de Financiamiento:</label>
+                                        <textarea class="form-control" id="txtInfoFuentes" rows="3" readonly></textarea>
+                                    </div>
+                                    <div class="col-md-2 form-group">
+                                        <label class="font-weight-bold">Latitud:</label>
+                                        <input type="text" class="form-control" id="txtInfoLatitud" readonly>
+                                    </div>
+                                    <div class="col-md-2 form-group">
+                                        <label class="font-weight-bold">Longitud:</label>
+                                        <input type="text" class="form-control" id="txtInfoLongitud" readonly>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8 form-group">
+                                        <label class="font-weight-bold required-field">Ubicación de la obra:</label>
+                                        <textarea class="form-control" id="txtDireccion" rows="3"></textarea>
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="font-weight-bold required-field">Avance encontrado:</label>
+                                        <select class="form-control" id="cboAvanceEncontrado"></select>
+                                    </div>
+                                </div>
+
+                                {{-- ── Situación encontrada ── --}}
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Situación Encontrada</legend>
+                                    <div class="row">
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold required-field">Situación:</label>
                                             <select class="form-control" id="cboSituacionEncontrada"></select>
                                         </div>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Detalle Situación Encontrada:</label>
-                                            <input type="text" class="form-control" id="txtDetalleSituacionEncontrada"
-                                                   placeholder="Describe lo observado en campo...">
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold required-field">Sub-Situación:</label>
+                                            <select class="form-control" id="cboSubsituacion"></select>
                                         </div>
                                     </div>
-                                </div>
+                                </fieldset>
 
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Recomendación:</label>
-                                            <input type="text" class="form-control" id="txtRecomendacion">
-                                        </div>
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Observación de la situación encontrada (describir brevemente)</legend>
+                                    <div class="form-group">
+                                        <textarea class="form-control" id="txtObservacionesSituacion" rows="3"></textarea>
                                     </div>
-                                </div>
+                                </fieldset>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Dirección del Proyecto:</label>
-                                            <input type="text" class="form-control" id="txtDireccion"
-                                                   placeholder="Solo aplica a fichas tipo Programa">
+                                {{-- ── Persona que proporcionó la información ── --}}
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos de la persona que proporcionó información de la obra o acción</legend>
+                                    <div class="row">
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold">Identificación Personal:</label>
+                                            <input type="text" class="form-control" id="txtIdentificacionPersonal">
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold required-field">Nombre:</label>
+                                            <input type="text" class="form-control" id="txtNombrePersonal">
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Organismo Público:</label>
-                                            <input type="text" class="form-control" id="txtOrganismoPublico">
+                                    <div class="row">
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold required-field">Cargo:</label>
+                                            <input type="text" class="form-control" id="txtCargoPersonal">
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold required-field">Domicilio:</label>
+                                            <input type="text" class="form-control" id="txtDomicilioPersonal">
                                         </div>
                                     </div>
-                                </div>
+                                    <div class="row">
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold">Municipio:</label>
+                                            <select class="form-control" id="cboMunicipioPersonal"></select>
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold">Localidad:</label>
+                                            <select class="form-control" id="cboLocalidadPersonal"></select>
+                                        </div>
+                                    </div>
+                                </fieldset>
 
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Inversión Programada:</label>
-                                            <input type="number" class="form-control" id="txtInversionProgramada" step="0.01">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Beneficiarios:</label>
-                                            <input type="number" class="form-control" id="txtBeneficiariosEncuesta">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Tipo Beneficiario:</label>
-                                            <input type="text" class="form-control" id="txtTipoBeneficiarioEncuesta">
-                                        </div>
-                                    </div>
-                                </div>
+                                {{-- ── ENCUESTA 1 ── --}}
+                                <h6 class="font-weight-bold text-warning mt-4">ENCUESTA 1</h6>
+                                <div id="cuestionarioEncuesta1" class="bg-white border rounded px-3 py-2 mb-3"></div>
 
-                                <label class="font-weight-bold text-warning">Datos de la persona que proporcionó la información:</label>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="text-muted small">Nombre:</label>
-                                            <input type="text" class="form-control form-control-sm" id="txtInformanteNombre">
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos y comentarios del encuestador / verificador</legend>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Nombre:</label>
+                                        <input type="text" class="form-control" id="txtNombreEncuestador">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Recomendaciones:</label>
+                                        <textarea class="form-control" id="txtRecomendacionesEncuestador" rows="3"></textarea>
+                                    </div>
+                                </fieldset>
+
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Situación Encontrada</legend>
+                                    <div class="form-group">
+                                        <select class="form-control" id="cboSituacionEncuestador"></select>
+                                    </div>
+                                </fieldset>
+
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Observaciones</legend>
+                                    <div class="form-group">
+                                        <textarea class="form-control" id="txtObservacionesEncuestador" rows="3"></textarea>
+                                    </div>
+                                </fieldset>
+
+                                {{-- ── Datos del encuestado ── --}}
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos del Encuestado</legend>
+                                    <div class="row">
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold">Identificación Personal:</label>
+                                            <input type="text" class="form-control" id="txtIdentificacionEncuestado">
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold required-field">Nombre:</label>
+                                            <input type="text" class="form-control" id="txtNombreEncuestado">
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="text-muted small">Domicilio:</label>
-                                            <input type="text" class="form-control form-control-sm" id="txtInformanteDomicilio">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label class="text-muted small">Sexo:</label>
-                                            <select class="form-control form-control-sm" id="cboInformanteSexo">
-                                                <option value="">(N/A)</option>
-                                                <option value="M">Masculino</option>
-                                                <option value="F">Femenino</option>
+                                    <div class="row">
+                                        <div class="col-md-4 form-group">
+                                            <label class="font-weight-bold required-field">Sexo:</label>
+                                            <select class="form-control" id="cboSexoEncuestado">
+                                                <option value="">Seleccione un sexo</option>
+                                                <option value="H">H</option>
+                                                <option value="M">M</option>
                                             </select>
                                         </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label class="text-muted small">Edad:</label>
-                                            <input type="number" class="form-control form-control-sm" id="txtInformanteEdad">
+                                        <div class="col-md-2 form-group">
+                                            <label class="font-weight-bold required-field">Edad:</label>
+                                            <input type="number" class="form-control" id="txtEdadEncuestado" min="0" max="120">
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold required-field">Parentesco:</label>
+                                            <input type="text" class="form-control" id="txtParentescoEncuestado">
                                         </div>
                                     </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold required-field">Domicilio:</label>
+                                        <input type="text" class="form-control" id="txtDomicilioEncuestado">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold">Municipio:</label>
+                                            <select class="form-control" id="cboMunicipioEncuestado"></select>
+                                        </div>
+                                        <div class="col-md-6 form-group">
+                                            <label class="font-weight-bold">Localidad:</label>
+                                            <select class="form-control" id="cboLocalidadEncuestado"></select>
+                                        </div>
+                                    </div>
+                                </fieldset>
+
+                                {{-- ── ENCUESTA 2 ── --}}
+                                <h6 class="font-weight-bold text-warning mt-4">ENCUESTA 2</h6>
+                                <div id="cuestionarioEncuesta2" class="bg-white border rounded px-3 py-2 mb-3"></div>
+
+                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
+                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos y comentarios del encuestador / verificador</legend>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Nombre:</label>
+                                        <input type="text" class="form-control" id="txtNombreEncuestadorFinal">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Recomendaciones:</label>
+                                        <textarea class="form-control" id="txtRecomendacionesEncuestadorFinal" rows="3"></textarea>
+                                    </div>
+                                </fieldset>
+
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Comentarios de la Dependencia Ejecutora:</label>
+                                    <textarea class="form-control" id="txtComentarioFinal" rows="3"></textarea>
                                 </div>
 
-                                <label class="font-weight-bold text-warning">Cuestionario:</label>
-                                <div id="cuestionarioEncuesta" class="mb-3"></div>
+                                {{-- ── Evidencia: hasta 5 fotos (las casillas las arma Encuestas.js) + documentos ── --}}
+                                <label class="font-weight-bold text-warning">
+                                    <i class="fas fa-camera mr-1"></i> Evidencia fotográfica
+                                    <span class="badge badge-warning ml-1" id="lblTipoFotos">(elija el tipo de encuesta)</span>
+                                    <span class="text-muted font-weight-normal small ml-1">máximo 5 fotos</span>
+                                </label>
+                                <div class="row mb-2" id="contenedorFotos"></div>
 
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">Observaciones:</label>
-                                            <textarea class="form-control" id="txtObservacionesEncuesta" rows="3"></textarea>
-                                        </div>
-                                    </div>
+                                <div class="form-group">
+                                    <label class="font-weight-bold">
+                                        <i class="fas fa-file-alt mr-1"></i> Evidencia Documental (varios):
+                                    </label>
+                                    <input type="file" class="form-control-file" name="documentos[]" multiple
+                                           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.rar,.jpg,.jpeg,.png">
+                                    <small class="text-muted">PDF, Word, Excel, PowerPoint, CSV, TXT, ZIP/RAR o imagen. Máximo 20 MB por archivo.</small>
+                                    <div id="previewDocumentos" class="mt-2"></div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">
-                                                <i class="fas fa-camera mr-1"></i> Evidencia Fotográfica (varias):
-                                            </label>
-                                            {{-- el "[]" en el name es lo que permite subir varios archivos a la vez --}}
-                                            <input type="file" class="form-control-file" name="fotos[]"
-                                                   accept="image/*" multiple>
-                                            <div id="previewFotos" class="mt-2"></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="font-weight-bold">
-                                                <i class="fas fa-file-alt mr-1"></i> Evidencia Documental (varios):
-                                            </label>
-                                            <input type="file" class="form-control-file" name="documentos[]" multiple>
-                                            <div id="previewDocumentos" class="mt-2"></div>
-                                        </div>
-                                    </div>
-                                </div>
+
                                 <div class="text-right">
                                     <button type="button" class="btn btn-light mr-2" id="btnCancelarEncuesta">Cancelar</button>
                                     <button type="button" class="btn btn-warning text-white" id="btnGuardarEncuesta">

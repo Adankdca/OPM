@@ -1,150 +1,168 @@
-{{-- resources/views/encuestas/ficha.blade.php --}}
+{{-- resources/views/encuestas/ficha.blade.php  (v2: ficha general, sigue el layout del formulario) --}}
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Ficha de Verificación #{{ $encuesta->IDEncuesta }}</title>
+    <title>Ficha de Verificación {{ $encuesta->Folio ?? $encuesta->IDEncuesta }}</title>
     <style>
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #222; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #222; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
-        h2 { font-size: 12px; text-align: center; margin: 0 0 14px; color: #444; }
-        table.datos { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        table.datos td { border: 1px solid #999; padding: 4px 6px; vertical-align: top; }
-        table.datos td.label { background: #f0f0f0; font-weight: bold; width: 22%; }
-        .seccion-title { background: #dfe9f5; font-weight: bold; padding: 4px 6px; margin: 12px 0 6px; border: 1px solid #99b3d1; }
-        table.preguntas { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        table.preguntas td, table.preguntas th { border: 1px solid #999; padding: 4px 6px; }
+        h2 { font-size: 12px; text-align: center; margin: 0 0 12px; color: #444; }
+        table { width: 100%; border-collapse: collapse; }
+        table.datos { margin-bottom: 8px; }
+        table.datos td { border: 1px solid #999; padding: 3px 5px; vertical-align: top; }
+        table.datos td.label { background: #f0f0f0; font-weight: bold; width: 17%; }
+        .seccion-title { background: #dfe9f5; font-weight: bold; padding: 3px 6px; margin: 10px 0 5px; border: 1px solid #99b3d1; }
+        .bloque-title { background: #EE9D01; color: #fff; font-weight: bold; padding: 3px 6px; margin: 12px 0 5px; }
+        table.preguntas { margin-bottom: 8px; }
+        table.preguntas td, table.preguntas th { border: 1px solid #999; padding: 3px 5px; vertical-align: top; }
         table.preguntas th { background: #f0f0f0; text-align: left; }
         .chk { text-align: center; font-weight: bold; }
+        .etq { color: #666; font-style: italic; }
+        table.fotos td { width: 33%; border: 1px solid #999; text-align: center; padding: 4px; vertical-align: top; }
+        table.fotos img { max-width: 100%; max-height: 190px; }
         .no-print { display: block; }
         @media print { .no-print { display: none; } }
     </style>
 </head>
 <body>
+@php
+    $fecha = $encuesta->FechaVisita ? \Carbon\Carbon::parse($encuesta->FechaVisita)->format('d/m/Y') : '-';
+    $v = function ($x) { return ($x === null || $x === '') ? '-' : $x; };
+@endphp
 
     <div class="no-print" style="text-align:right; margin-bottom:8px;">
         <button onclick="window.print()">Imprimir</button>
     </div>
 
     <h1>GOBIERNO DEL ESTADO DE CHIAPAS</h1>
-    <h2>FICHA DE VERIFICACIÓN — {{ strtoupper($tipoOrigen) }}</h2>
+    <h2>FICHA DE VERIFICACIÓN — ENCUESTA DE {{ strtoupper($tipoEncuesta) }}</h2>
 
+    {{-- ── Encabezado (mismo orden que el formulario) ── --}}
     <table class="datos">
         <tr>
-            <td class="label">Folio:</td><td>{{ $encuesta->Folio ?? $encuesta->IDEncuesta }}</td>
-            <td class="label">Fecha Visita:</td><td>{{ $encuesta->FechaVisita }}</td>
+            <td class="label">Folio:</td><td>{{ $v($encuesta->Folio) }}</td>
+            <td class="label">Dependencia Ejecutora:</td><td>{{ $v($info['dependenciaEjecutora']) }}</td>
+            <td class="label">Situación Reportada:</td><td>{{ $v($encuesta->situacionreportada) }}</td>
         </tr>
         <tr>
-            {{-- Punto 1 y 2: Dependencia Ejecutora -- viene de TBLC_Area.Area_Nombre,
-                 ya seleccionada en datosFicha() como $accion->dependenciaEjecutora.
-                 Si sale en blanco, revisa que la Obra tenga Área asignada en su
-                 formulario -- no es falta de este campo, es dato de origen vacío. --}}
-            <td class="label">Dependencia Ejecutora:</td><td colspan="3">{{ $accion->dependenciaEjecutora ?? '-' }}</td>
+            <td class="label">Municipio:</td><td>{{ $v($info['municipio']) }}</td>
+            <td class="label">Beneficiados:</td><td>{{ $v($info['beneficiados']) }}</td>
+            <td class="label">Ejercicio:</td><td>{{ $v($info['ejercicio']) }}</td>
         </tr>
         <tr>
-            <td class="label">Programa:</td><td colspan="3">{{ $accion->programa }}</td>
+            <td class="label">Localidad:</td><td>{{ $v($info['localidad']) }}</td>
+            <td class="label">Inversión Programada:</td><td>${{ number_format($info['inversionProgramada'], 2) }}</td>
+            <td class="label">Fecha de Visita:</td><td>{{ $fecha }}</td>
         </tr>
         <tr>
-            <td class="label">Nombre del Proyecto:</td><td colspan="3">{{ $accion->nombreObra }}</td>
+            <td class="label">Programa:</td><td>{{ $v($info['programa']) }}</td>
+            <td class="label">Avance Físico %:</td><td>{{ $encuesta->avancefisico !== null ? $encuesta->avancefisico . '%' : '-' }}</td>
+            <td class="label">Folios Relacionados:</td><td>{{ $v($encuesta->foliosrelacionados) }}</td>
         </tr>
+        <tr>
+            <td class="label">Nombre del Proyecto:</td><td colspan="3">{{ $v($info['nombreProyecto']) }}</td>
+            <td class="label">Meta:</td><td>{{ $v($info['meta']) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Fuentes de Financiamiento:</td><td colspan="3">{!! nl2br(e($v($info['fuentes']))) !!}</td>
+            <td class="label">Latitud / Longitud:</td><td>{{ $v($info['latitud']) }} / {{ $v($info['longitud']) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Ubicación de la obra:</td><td colspan="3">{!! nl2br(e($v($encuesta->Direccion))) !!}</td>
+            <td class="label">Avance encontrado:</td><td>{{ $encuesta->avanceencontrado !== null ? (int) $encuesta->avanceencontrado . '%' : '-' }}</td>
+        </tr>
+    </table>
 
-        @if($tipoOrigen === 'Programa')
-        {{-- Punto 2: Dirección del proyecto -- solo aplica a fichas de Programa,
-             tal como en tu PDF de ejemplo (ficha_programa_descarga.pdf) --}}
+    <div class="seccion-title">Situación Encontrada</div>
+    <table class="datos">
         <tr>
-            <td class="label">Dirección:</td><td colspan="3">{{ $encuesta->Direccion ?? '-' }}</td>
-        </tr>
-        @endif
-
-        <tr>
-            <td class="label">Municipio:</td><td>{{ $municipio }}</td>
-            <td class="label">Localidad:</td><td>{{ $accion->LCL_Nombre }}</td>
+            <td class="label">Situación:</td><td>{{ $v($situacion) }}</td>
+            <td class="label">Sub-Situación:</td><td>{{ $v($subsituacion) }}</td>
         </tr>
         <tr>
-            <td class="label">Ejercicio:</td><td>{{ $accion->OP_Año }}</td>
-            <td class="label">No. Contrato:</td><td>{{ $accion->noContrato ?? '-' }}</td>
-        </tr>
-        <tr>
-            {{-- Punto 1 y 2: Meta -- viene directo de TblD_Acciones.Meta
-                 ($accion->Meta, ya incluida en el SELECT 'A.*' de datosFicha()).
-                 OJO: si siempre sale "0", es porque guardarAccion() todavía
-                 guarda Meta en 0 fijo al crear la acción -- revisa si quieres
-                 agregar un campo editable de Meta en el formulario de Acción;
-                 no es un problema de la ficha, es que nunca se captura otro valor. --}}
-            <td class="label">Meta:</td><td>{{ $accion->Meta }}</td>
-            <td class="label">Beneficiarios:</td>
-            <td>{{ $encuesta->Beneficiarios ?? $accion->Beneficiario }} ({{ $encuesta->TipoBeneficiario ?? $accion->Tipobeneficiario }})</td>
-        </tr>
-        <tr>
-            <td class="label">Inversión Programada:</td>
-            <td colspan="3">${{ number_format($encuesta->InversionProgramada ?? 0, 2) }}</td>
-        </tr>
-        <tr>
-            <td class="label">Avance Físico:</td><td>{{ $encuesta->PorcentajeAvance }}%</td>
-            <td class="label">Situación Reportada:</td><td>{{ $estatus }}</td>
-        </tr>
-        <tr>
-            <td class="label">Situación Encontrada:</td><td colspan="3">{{ $situacion ?? '-' }}</td>
-        </tr>
-        <tr>
-            {{-- Punto 5: Detalle Situación Encontrada -- texto libre, aplica a
-                 ambos tipos (Obra y Programa) --}}
-            <td class="label">Detalle Situación Encontrada:</td>
-            <td colspan="3">{{ $encuesta->DetalleSituacionEncontrada ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="label">Recomendación:</td><td colspan="3">{{ $encuesta->Recomendacion }}</td>
+            <td class="label">Observación de la situación encontrada:</td>
+            <td colspan="3">{!! nl2br(e($v($encuesta->observacionessituacion))) !!}</td>
         </tr>
     </table>
 
     <div class="seccion-title">Datos de la persona que proporcionó información de la obra o acción</div>
     <table class="datos">
         <tr>
-            <td class="label">Nombre:</td><td>{{ $encuesta->InformanteNombre }}</td>
-            <td class="label">Domicilio:</td><td>{{ $encuesta->InformanteDomicilio }}</td>
+            <td class="label">Identificación Personal:</td><td>{{ $v($encuesta->identificacionpersonal) }}</td>
+            <td class="label">Nombre:</td><td>{{ $v($encuesta->nombrecompletopersonal) }}</td>
         </tr>
-        @if($tipoOrigen === 'Programa')
         <tr>
-            <td class="label">Sexo:</td><td>{{ $encuesta->InformanteSexo === 'M' ? 'Masculino' : ($encuesta->InformanteSexo === 'F' ? 'Femenino' : '-') }}</td>
-            <td class="label">Edad:</td><td>{{ $encuesta->InformanteEdad }}</td>
+            <td class="label">Cargo:</td><td>{{ $v($encuesta->cargopersonal) }}</td>
+            <td class="label">Domicilio:</td><td>{{ $v($encuesta->domiciliopersonal) }}</td>
         </tr>
-        @endif
+        <tr>
+            <td class="label">Municipio:</td><td>{{ $v($municipioPersonal) }}</td>
+            <td class="label">Localidad:</td><td>{{ $v($localidadPersonal) }}</td>
+        </tr>
     </table>
 
-    <div class="seccion-title">Cuestionario para verificar {{ $tipoOrigen === 'Programa' ? 'programas' : 'obras' }}</div>
-    <table class="preguntas">
-        <thead>
-            <tr>
-                <th style="width:55%;">Pregunta</th>
-                <th style="width:15%;">Respuesta</th>
-                <th>¿Por qué? / Comentario</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($preguntas as $i => $p)
-                @php $r = $respuestas[$p->IDPregunta] ?? null; @endphp
-                <tr>
-                    <td>{{ $i + 1 }}. {{ $p->Texto }}</td>
-                    <td class="chk">{{ $r->Respuesta ?? '-' }}</td>
-                    <td>{{ $r->Justificacion ?? '-' }}</td>
-                </tr>
-            @endforeach
-        </tbody>
+    {{-- ── ENCUESTA 1 ── --}}
+    <div class="bloque-title">ENCUESTA 1</div>
+    @include('encuestas._preguntas', ['lista' => $preguntas1])
+
+    <div class="seccion-title">Datos y comentarios del encuestador / verificador</div>
+    <table class="datos">
+        <tr><td class="label">Nombre:</td><td>{{ $v($encuesta->nombreencuestador) }}</td></tr>
+        <tr><td class="label">Recomendaciones:</td><td>{!! nl2br(e($v($encuesta->recomendacionesencuestador))) !!}</td></tr>
+        <tr><td class="label">Situación Encontrada:</td><td>{{ $v($situacionEncuestador) }}</td></tr>
+        <tr><td class="label">Observaciones:</td><td>{!! nl2br(e($v($encuesta->observacionesencuestador))) !!}</td></tr>
     </table>
 
-    <div class="seccion-title">Datos y comentarios del encuestador/verificador</div>
+    <div class="seccion-title">Datos del Encuestado</div>
     <table class="datos">
         <tr>
-            {{-- Punto 6: Organismo Público -- aplica a ambos tipos --}}
-            <td class="label">Organismo Público:</td><td colspan="3">{{ $encuesta->OrganismoPublico ?? '-' }}</td>
+            <td class="label">Identificación Personal:</td><td>{{ $v($encuesta->identificacionperencuestado) }}</td>
+            <td class="label">Nombre:</td><td>{{ $v($encuesta->nombreencuestado) }}</td>
         </tr>
         <tr>
-            <td class="label">Encuestador:</td><td colspan="3">{{ $encuesta->NombreEncuestador }}</td>
+            <td class="label">Sexo:</td><td>{{ $v($encuesta->sexoencuestado) }}</td>
+            <td class="label">Edad:</td><td>{{ $v($encuesta->edadencuestado) }}</td>
         </tr>
         <tr>
-            <td class="label">Comentarios:</td><td colspan="3">{{ $encuesta->Observaciones }}</td>
+            <td class="label">Parentesco:</td><td>{{ $v($encuesta->parentescoencuestado) }}</td>
+            <td class="label">Domicilio:</td><td>{{ $v($encuesta->domicilioencuestado) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Municipio:</td><td>{{ $v($municipioEncuestado) }}</td>
+            <td class="label">Localidad:</td><td>{{ $v($localidadEncuestado) }}</td>
         </tr>
     </table>
+
+    {{-- ── ENCUESTA 2 ── --}}
+    <div class="bloque-title">ENCUESTA 2</div>
+    @include('encuestas._preguntas', ['lista' => $preguntas2])
+
+    <div class="seccion-title">Datos y comentarios del encuestador / verificador</div>
+    <table class="datos">
+        <tr><td class="label">Nombre:</td><td>{{ $v($encuesta->nombreencuestadorfinal) }}</td></tr>
+        <tr><td class="label">Recomendaciones:</td><td>{!! nl2br(e($v($encuesta->recomendacionesencuestadorfinal))) !!}</td></tr>
+        <tr><td class="label">Comentarios de la Dependencia Ejecutora:</td><td>{!! nl2br(e($v($encuesta->comentariofinal))) !!}</td></tr>
+    </table>
+
+    {{-- ── Evidencia fotográfica (hasta 5) ── --}}
+    <div class="seccion-title">Evidencia fotográfica</div>
+    @if(count($fotos))
+    <table class="fotos">
+        @foreach(array_chunk($fotos, 3) as $fila)
+            <tr>
+                @foreach($fila as $f)
+                    <td><strong>Foto {{ $f['pos'] }}</strong><br><img src="{{ $f['src'] }}" alt="Foto {{ $f['pos'] }}"></td>
+                @endforeach
+                @for($k = count($fila); $k < 3; $k++)
+                    <td>&nbsp;</td>
+                @endfor
+            </tr>
+        @endforeach
+    </table>
+    @else
+        <p style="color:#888;">Sin fotografías.</p>
+    @endif
 
 </body>
 </html>

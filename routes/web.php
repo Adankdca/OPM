@@ -103,16 +103,25 @@ Route::prefix('api/Contratos')->middleware('login.required')->group(function () 
 // Modulo NUEVO (beta): Encuestas de Seguimiento de Obra
 // ══════════════════════════════════════════════════════════════
 Route::prefix('api/Encuestas')->middleware('login.required')->group(function () {
-    Route::get('/getTipoOrigen', [EncuestasController::class, 'getTipoOrigen']);
-    Route::get('/getEstatusEncuesta', [EncuestasController::class, 'getEstatusEncuesta']);
+    // Catálogos
+    Route::get('/getTipoOrigen', [EncuestasController::class, 'getTipoOrigen']); // lo usa el form de Acción
     Route::get('/getSituacionEncontrada', [EncuestasController::class, 'getSituacionEncontrada']);
-    Route::get('/getPreguntas/{idTipoOrigen}', [EncuestasController::class, 'getPreguntas']);
-    Route::get('/getEncuestas/{idAccion}', [EncuestasController::class, 'getEncuestas']); // antes {idobra}
+    Route::get('/getSubsituacionEncontrada', [EncuestasController::class, 'getSubsituacionEncontrada']);
+    Route::get('/getSituacionEncuestador', [EncuestasController::class, 'getSituacionEncuestador']);
+    Route::get('/getMunicipios', [EncuestasController::class, 'getMunicipios']);
+    Route::get('/getLocalidades/{cveMunicipio}', [EncuestasController::class, 'getLocalidades']);
+    Route::get('/getPreguntas', [EncuestasController::class, 'getPreguntas']); // cuestionario general (ya sin tipo)
+    // Datos informativos de la acción
+    Route::get('/getDatosAccion/{idAccion}', [EncuestasController::class, 'getDatosAccion']);
+    // Bitácora / CRUD
+    Route::get('/getEncuestas/{idAccion}', [EncuestasController::class, 'getEncuestas']);
     Route::get('/getEncuestaById/{id}', [EncuestasController::class, 'getEncuestaById']);
+    Route::get('/getUltimaEncuesta/{idAccion}', [EncuestasController::class, 'getUltimaEncuesta']); // precarga de encuesta nueva
     Route::post('/guardarEncuesta', [EncuestasController::class, 'guardarEncuesta']);
     Route::delete('/eliminarEncuesta/{id}', [EncuestasController::class, 'eliminarEncuesta']);
     Route::delete('/eliminarFoto/{idFoto}', [EncuestasController::class, 'eliminarFoto']);
     Route::delete('/eliminarDocumento/{idDocumento}', [EncuestasController::class, 'eliminarDocumento']);
+    // Ficha
     Route::get('/fichaHtml/{idEncuesta}', [EncuestasController::class, 'fichaHtml']);
     Route::get('/fichaPdf/{idEncuesta}', [EncuestasController::class, 'fichaPdf']);
 });
