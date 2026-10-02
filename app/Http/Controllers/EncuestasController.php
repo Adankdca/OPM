@@ -50,6 +50,82 @@ class EncuestasController extends Controller
         }
     }
 
+    /** Logo del municipio como data-URI (funciona igual en pantalla y en el PDF). */
+    private function logoDataUri()
+    {
+        $abs = public_path('assets/media/logo_chilon_ficha.png');
+
+        return File::exists($abs) ? 'data:image/png;base64,' . base64_encode(File::get($abs)) : null;
+    }
+
+    /**
+     * Foto lista para reportes: se reduce a $maxLado px y se recomprime (las fotos de
+     * celular pesan varios MB y harían lentos o imposibles los reportes con muchas
+     * fotos). Corrige la orientación EXIF. Sin la extensión GD manda la original.
+     */
+    private function imagenParaReporte($ruta, $maxLado = 1100)
+    {
+        $abs = public_path($ruta);
+        if (!$ruta || !File::exists($abs)) {
+            return null;
+        }
+
+        $original = function () use ($abs) {
+            return 'data:' . (File::mimeType($abs) ?: 'image/jpeg') . ';base64,' . base64_encode(File::get($abs));
+        };
+
+        if (!function_exists('imagecreatetruecolor')) {
+            return $original();
+        }
+
+        $info = @getimagesize($abs);
+        if (!$info) {
+            return null;
+        }
+
+        switch ($info[2]) {
+            case IMAGETYPE_JPEG: $img = @imagecreatefromjpeg($abs); break;
+            case IMAGETYPE_PNG:  $img = @imagecreatefrompng($abs); break;
+            case IMAGETYPE_GIF:  $img = @imagecreatefromgif($abs); break;
+            case IMAGETYPE_WEBP: $img = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($abs) : false; break;
+            default:             $img = false;
+        }
+        if (!$img) {
+            return $original();
+        }
+
+        // Orientación EXIF (fotos tomadas con el celular)
+        if ($info[2] === IMAGETYPE_JPEG && function_exists('exif_read_data')) {
+            $exif = @exif_read_data($abs);
+            $ang = [3 => 180, 6 => -90, 8 => 90][$exif['Orientation'] ?? 1] ?? 0;
+            if ($ang) {
+                $rot = @imagerotate($img, $ang, 0);
+                if ($rot) {
+                    imagedestroy($img);
+                    $img = $rot;
+                }
+            }
+        }
+
+        $w = imagesx($img);
+        $h = imagesy($img);
+        $esc = min(1, $maxLado / max($w, $h));
+        $nw = max(1, (int) round($w * $esc));
+        $nh = max(1, (int) round($h * $esc));
+
+        $dst = imagecreatetruecolor($nw, $nh);
+        imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255)); // fondo blanco (PNG con transparencia)
+        imagecopyresampled($dst, $img, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        imagedestroy($img);
+
+        ob_start();
+        imagejpeg($dst, null, 80);
+        $bin = ob_get_clean();
+        imagedestroy($dst);
+
+        return 'data:image/jpeg;base64,' . base64_encode($bin);
+    }
+
     // ══════════════════════════════════════════════════════════════
     // Catálogos
     // ══════════════════════════════════════════════════════════════
@@ -544,23 +620,20 @@ class EncuestasController extends Controller
             ->get()
             ->keyBy('IDPregunta');
 
-        // Fotos como data-URI (funcionan igual en pantalla y en dompdf), en orden de posición
+        // Fotos livianas como data-URI, en orden de posición
         $fotos = [];
         $filas = DB::table('tbld_encuestafotos')->where('IDEncuesta', $idEncuesta)->orderBy('Posicion')->get();
         foreach ($filas as $f) {
-            $abs = public_path($f->RutaArchivo);
-            if (File::exists($abs)) {
-                $mime = File::mimeType($abs) ?: 'image/jpeg';
-                $fotos[] = [
-                    'pos' => $f->Posicion,
-                    'src' => 'data:' . $mime . ';base64,' . base64_encode(File::get($abs)),
-                ];
+            $src = $this->imagenParaReporte($f->RutaArchivo);
+            if ($src) {
+                $fotos[] = ['pos' => $f->Posicion, 'src' => $src];
             }
         }
 
         return [
             'encuesta' => $encuesta,
             'tipoEncuesta' => self::TIPOS[$encuesta->TipoEncuesta] ?? $encuesta->TipoEncuesta,
+            'logo' => $this->logoDataUri(),
             'info' => $info,
             'situacion' => $nombre('tblc_situacionencontrada', 'IDSituacion', $encuesta->IDSituacionEncontrada, 'Nombre'),
             'subsituacion' => $nombre('tblc_subsituacionencontrada', 'IDSubsituacion', $encuesta->IDSubsituacionencontrada, 'Nombre'),
@@ -588,5 +661,78 @@ class EncuestasController extends Controller
         $pdf = \PDF::loadView('encuestas.ficha', $this->datosFicha($idEncuesta))->setPaper('letter');
 
         return $pdf->download('ficha_verificacion_' . $idEncuesta . '.pdf');
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Reporte general de encuestas de una acción
+    // ══════════════════════════════════════════════════════════════
+
+    private function datosReporteGeneral($idAccion)
+    {
+        @set_time_limit(180);
+        @ini_set('memory_limit', '512M');
+
+        $info = $this->infoAccion($idAccion);
+        abort_if(!$info, 404, 'La acción no existe.');
+
+        $encuestas = DB::table('tbld_encuestas')
+            ->where('IDAcciones', $idAccion)
+            ->orderBy('FechaVisita')->orderBy('FechaCreacion')->orderBy('IDEncuesta')
+            ->get(['IDEncuesta', 'Folio', 'TipoEncuesta', 'FechaVisita', 'avanceencontrado', 'foliosrelacionados']);
+
+        // Siempre en este orden; dentro de cada grupo, por fecha de visita (la más antigua primero)
+        $grupos = ['INICIO' => [], 'PROCESO' => [], 'CONCLUSION' => []];
+        $relacionados = [];
+        $totalFotos = 0;
+
+        foreach ($encuestas as $e) {
+            $fotos = [];
+            $filas = DB::table('tbld_encuestafotos')->where('IDEncuesta', $e->IDEncuesta)->orderBy('Posicion')->get();
+            foreach ($filas as $f) {
+                $src = $this->imagenParaReporte($f->RutaArchivo);
+                if ($src) {
+                    $fotos[] = ['pos' => $f->Posicion, 'src' => $src];
+                }
+            }
+            $totalFotos += count($fotos);
+
+            $rel = array_values(array_filter(array_map('trim', explode(',', (string) $e->foliosrelacionados))));
+            foreach ($rel as $r) {
+                $relacionados[$r] = true;
+            }
+
+            $grupos[$e->TipoEncuesta][] = [
+                'folio' => $e->Folio ?: ('#' . $e->IDEncuesta),
+                'fecha' => $e->FechaVisita ? \Carbon\Carbon::parse($e->FechaVisita)->format('d/m/Y') : '-',
+                'avance' => $e->avanceencontrado !== null ? (int) $e->avanceencontrado . '%' : '-',
+                'relacionados' => $rel ? implode(', ', $rel) : '-',
+                'fotos' => $fotos,
+            ];
+        }
+
+        return [
+            'info' => $info,
+            'grupos' => $grupos,
+            'etiquetas' => self::TIPOS,
+            'totalEncuestas' => count($encuestas),
+            'totalFotos' => $totalFotos,
+            'foliosRelacionados' => $relacionados ? implode(', ', array_keys($relacionados)) : '-',
+            'logo' => $this->logoDataUri(),
+            'emitido' => now()->format('d/m/Y H:i'),
+        ];
+    }
+
+    /** GET /api/Encuestas/reporteGeneral/{idAccion} -- vista previa / impresión */
+    public function reporteGeneralHtml($idAccion)
+    {
+        return view('encuestas.reporte_general', $this->datosReporteGeneral($idAccion));
+    }
+
+    /** GET /api/Encuestas/reporteGeneralPdf/{idAccion} */
+    public function reporteGeneralPdf($idAccion)
+    {
+        $pdf = \PDF::loadView('encuestas.reporte_general', $this->datosReporteGeneral($idAccion))->setPaper('letter');
+
+        return $pdf->download('reporte_general_encuestas_accion_' . $idAccion . '.pdf');
     }
 }

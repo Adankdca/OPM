@@ -46,7 +46,7 @@ const LoginModule = (function () {
     };
 
     var limpiarError = function (id) {
-        $('#' + id).css('border-color', '#E5EAEE');
+        $('#' + id).css('border-color', '#8f8fa6');
     };
 
     // ── Login principal ───────────────────────────────────────────────
@@ -74,7 +74,7 @@ const LoginModule = (function () {
                         icon: response.blocked ? 'warning' : 'error',
                         title: response.blocked ? 'Cuenta bloqueada' : 'Acceso denegado',
                         text: response.message || 'Usuario o contraseña incorrectos.',
-                        confirmButtonColor: '#1565C0',
+                        confirmButtonColor: '#15151B',
                         confirmButtonText: 'Intentar de nuevo'
                     }).then(function () {
                         $('#txtPassword').val('').focus();
@@ -110,7 +110,7 @@ const LoginModule = (function () {
                     icon: 'error',
                     title: 'Error del servidor',
                     text: msg,
-                    confirmButtonColor: '#1565C0'
+                    confirmButtonColor: '#15151B'
                 });
             }
         });

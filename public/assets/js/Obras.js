@@ -781,6 +781,7 @@ const ObrasModule = (function () {
         $('#txtAccion, #txtDescripcionObraAccion, #txtDescripcionLocalidadAccion').val('');
         $('#txtFinalidadAccion, #txtFuncionAccion, #txtSubfuncionAccion').val('');
         $('#txtProgramaAccion, #txtSubprogramaAccion, #txtProyectoAccion').val('');
+        $('#txtDependenciaEjecutoraAccion, #txtMetaGeneralAccion, #txtLatitudAccion, #txtLongitudAccion').val('');
         $('#txtBeneficiariosAccion').val('0');
         $('#txtTipoBeneficiarioAccion').val('');
         $('#chkDictamenFuente, #chkAutorizado, #chkLiberada').prop('checked', false);
@@ -813,6 +814,10 @@ const ObrasModule = (function () {
             $('#txtProgramaAccion').val(a.programa || '');
             $('#txtSubprogramaAccion').val(a.subprograma || '');
             $('#txtProyectoAccion').val(a.proyecto || '');
+            $('#txtDependenciaEjecutoraAccion').val(a.dependenciaEjecutora || '');
+            $('#txtMetaGeneralAccion').val(a.metaGeneral || '');
+            $('#txtLatitudAccion').val(a.latitud || '');
+            $('#txtLongitudAccion').val(a.longitud || '');
             mostrarPanelAcciones('form');
         });
     };
@@ -852,6 +857,10 @@ const ObrasModule = (function () {
             programa: $('#txtProgramaAccion').val(),
             subprograma: $('#txtSubprogramaAccion').val(),
             proyecto: $('#txtProyectoAccion').val(),
+            dependenciaEjecutora: $('#txtDependenciaEjecutoraAccion').val(),
+            metaGeneral: $('#txtMetaGeneralAccion').val(),
+            latitud: $('#txtLatitudAccion').val(),
+            longitud: $('#txtLongitudAccion').val(),
             cveMunicipio: '031'
         };
 
@@ -954,7 +963,7 @@ const ObrasModule = (function () {
     var eliminarAccion = function (idAccion) {
         Swal.fire({
             title: '¿Eliminar acción?',
-            text: 'Verifique que no tenga inversión registrada.',
+            text: 'Se eliminarán también todas sus encuestas (con respuestas, fotos y documentos). Verifique que no tenga inversión registrada.',
             icon: 'warning', showCancelButton: true,
             confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar',

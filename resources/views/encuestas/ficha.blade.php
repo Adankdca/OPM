@@ -35,8 +35,17 @@
         <button onclick="window.print()">Imprimir</button>
     </div>
 
-    <h1>GOBIERNO DEL ESTADO DE CHIAPAS</h1>
-    <h2>FICHA DE VERIFICACIÓN — ENCUESTA DE {{ strtoupper($tipoEncuesta) }}</h2>
+    <table style="margin-bottom:0;">
+        <tr>
+            <td style="width:150px; vertical-align:middle;">@if($logo)<img src="{{ $logo }}" style="width:140px;" alt="Logo">@endif</td>
+            <td style="vertical-align:middle;">
+                <h1>FICHA DE VERIFICACIÓN</h1>
+                <h2>ENCUESTA DE {{ strtoupper($tipoEncuesta) }}</h2>
+            </td>
+        </tr>
+    </table>
+    <div style="height:4px; background:#FDC703; margin-top:6px;"></div>
+    <div style="height:4px; background:#D60106; margin-bottom:10px;"></div>
 
     {{-- ── Encabezado (mismo orden que el formulario) ── --}}
     <table class="datos">

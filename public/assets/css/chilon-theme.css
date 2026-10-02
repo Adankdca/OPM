@@ -1,138 +1,288 @@
-/* ================================================
-   Tema Chilón - basado en los colores reales del logo
-   Rojo   #CC0000  (reservado para "peligro"/eliminar)
-   Verde  #008424  (color PRIMARIO de todo el sistema)
-   Dorado #FCC000  (acentos puntuales)
-   Café   #6C3000
-   ================================================
-   v2: se cambia el color primario de rojo a VERDE (para
-   que el sistema completo -- sidebar, botones, TODOS los
-   modales, incluido el de Obra -- use el mismo verde que
-   ya tenia el modal de Acciones). El header pasa a gris
-   oscuro neutro en vez de color solido.
-   ================================================ */
+/* =====================================================================
+   TEMA CHILÓN  v3  --  colores tomados del logo del H. Ayuntamiento
+   ---------------------------------------------------------------------
+   Rojo     #D60106  identidad (menú activo, títulos, acentos, peligro)
+   Verde    #008028  acciones principales (Guardar, botones primarios)
+   Amarillo #FDC703  acento (línea del logo, avisos, etiquetas)
+   Café     #784005  detalles
+   Negro    #15151B  encabezado y textos fuertes
+   Gris     #D6D6E0  bordes, divisiones, encabezados de tabla, fondos
+   Se carga DESPUÉS de medguard.css. Para volver al diseño anterior basta
+   con quitar la línea que lo carga en layouts/metronic.blade.php.
+   ===================================================================== */
 
 :root {
-  --chilon-rojo: #CC0000;
-  --chilon-rojo-oscuro: #A30000;
-  --chilon-verde: #008424;
-  --chilon-verde-oscuro: #006B1D;
-  --chilon-dorado: #FCC000;
-  --chilon-cafe: #6C3000;
-  --chilon-header-gris: #494b4e;
+  --chilon-rojo: #D60106;
+  --chilon-rojo-oscuro: #A30004;
+  --chilon-verde: #008028;
+  --chilon-verde-oscuro: #006320;
+  --chilon-dorado: #FDC703;
+  --chilon-dorado-claro: #FFF6D6;
+  --chilon-cafe: #784005;
+  --chilon-negro: #15151B;
+  --chilon-gris: #D6D6E0;
+  --chilon-gris-medio: #B4B4C4;
+  --chilon-gris-claro: #ECECF2;
+  --chilon-fondo: #E9E9F0;
 }
 
-/* ============== Barra superior (header) ============== */
+/* ============== Estructura general ============== */
+.wrapper, .content { background-color: var(--chilon-fondo) !important; }
+
+/* Encabezado: negro con la doble línea del logo (amarillo + rojo) */
 #kt_header {
-  background-color: var(--chilon-header-gris) !important;
+  background-color: var(--chilon-negro) !important;
+  border-bottom: 3px solid var(--chilon-dorado);
+  box-shadow: 0 3px 0 var(--chilon-rojo) !important;
+}
+#kt_header .text-muted,
+#kt_header .text-dark-50 { color: var(--chilon-gris) !important; }
+
+/* Tarjetas: borde gris definido y encabezado con línea de acento */
+.card.card-custom {
+  border: 1px solid var(--chilon-gris);
+  box-shadow: 0 1px 4px rgba(21, 21, 27, .08);
+}
+.card.card-custom > .card-header {
+  border-bottom: 2px solid var(--chilon-gris);
 }
 
-/* ============== Fondo primario (headers de modales, etc) ==============
-   ESTA es la regla que faltaba -- por eso el modal de Obra seguia
-   viendose azul (#6993FF) aunque ya hubieramos cambiado botones/links.
-   .bg-primary es justo la clase que usa <div class="modal-header
-   bg-primary text-white"> en el modal de Obra/Proyecto. */
-.bg-primary {
-  background-color: var(--chilon-verde) !important;
+/* Tablas: encabezado gris con línea roja, filas con división visible */
+.table thead.thead-light th,
+.table-head-custom thead th {
+  background-color: var(--chilon-gris) !important;
+  color: var(--chilon-negro) !important;
+  border-bottom: 2px solid var(--chilon-rojo) !important;
+  font-weight: 700;
 }
+.table tbody td { border-top: 1px solid var(--chilon-gris); }
+.table-hover tbody tr:hover { background-color: rgba(214, 214, 224, .35); }
 
-/* ============== Botones primarios ============== */
-.btn-primary {
+/* ============== Fondo primario (encabezados de modales) ============== */
+.bg-primary { background-color: var(--chilon-verde) !important; }
+
+/* ============== Botones ============== */
+.btn-primary, .btn-success {
   background-color: var(--chilon-verde) !important;
   border-color: var(--chilon-verde) !important;
 }
-.btn-primary:hover,
-.btn-primary:focus,
-.btn-primary:active {
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active,
+.btn-success:hover, .btn-success:focus {
   background-color: var(--chilon-verde-oscuro) !important;
   border-color: var(--chilon-verde-oscuro) !important;
 }
-
-/* ============== Boton de exito (Guardar) -- mismo verde, consistente ============== */
-.btn-success {
-  background-color: var(--chilon-verde) !important;
-  border-color: var(--chilon-verde) !important;
-}
-.btn-success:hover,
-.btn-success:focus {
-  background-color: var(--chilon-verde-oscuro) !important;
-  border-color: var(--chilon-verde-oscuro) !important;
-}
-
-/* ============== Texto / iconos primarios ============== */
-.text-primary {
-  color: var(--chilon-verde) !important;
-}
-.svg-icon-primary svg {
-  stroke: var(--chilon-verde) !important;
-}
-
-/* ============== Badges y alertas ============== */
-.badge-primary {
-  background-color: var(--chilon-verde) !important;
-}
-.badge-light-primary {
-  background-color: rgba(0, 132, 36, 0.1) !important;
-  color: var(--chilon-verde) !important;
-}
-.alert-light-primary {
-  background-color: rgba(0, 132, 36, 0.08) !important;
-  border-color: rgba(0, 132, 36, 0.2) !important;
-  color: var(--chilon-verde-oscuro) !important;
-}
-.alert-light-primary .text-primary {
-  color: var(--chilon-verde) !important;
-}
-
-/* ============== Sidebar / menu lateral: acentos activos ============== */
-.aside-menu .menu-nav > .menu-item:hover > .menu-link .menu-text,
-.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link .menu-text {
-  color: #fff !important;
-}
-.aside-menu .menu-nav > .menu-item.menu-item-active {
-  background-color: rgba(0, 132, 36, 0.15) !important;
-}
-.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link {
-  background-color: var(--chilon-verde) !important;
-}
-.aside-menu .menu-nav > .menu-item:hover > .menu-link .svg-icon svg,
-.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link .svg-icon svg {
-  stroke: #fff !important;
-}
-
-/* ============== Inputs: foco con acento verde ============== */
-.form-control:focus {
-  border-color: var(--chilon-verde) !important;
-}
-
-/* ============== Links ============== */
-a {
-  color: var(--chilon-verde);
-}
-a:hover {
-  color: var(--chilon-verde-oscuro);
-}
-
-/* ============== Totales de tabla (fila resaltada) ============== */
-.bg-light-primary {
-  background-color: rgba(0, 132, 36, 0.08) !important;
-}
-.text-danger {
-  color: var(--chilon-rojo) !important;
-}
-
-/* ============== Botones de peligro / eliminar -- se quedan en rojo ============== */
 .btn-danger {
   background-color: var(--chilon-rojo) !important;
   border-color: var(--chilon-rojo) !important;
 }
-.btn-danger:hover,
-.btn-danger:focus {
+.btn-danger:hover, .btn-danger:focus {
   background-color: var(--chilon-rojo-oscuro) !important;
   border-color: var(--chilon-rojo-oscuro) !important;
 }
 
-/* ============== Detalle dorado: borde de tarjetas destacadas ============== */
-.card-custom.border-left-gold {
-  border-left: 4px solid var(--chilon-dorado) !important;
+/* ============== Texto / iconos / badges ============== */
+.text-primary { color: var(--chilon-verde) !important; }
+.text-danger { color: var(--chilon-rojo) !important; }
+.svg-icon-primary svg { stroke: var(--chilon-verde) !important; }
+.badge-primary { background-color: var(--chilon-verde) !important; }
+.badge-light-primary { background-color: rgba(0, 128, 40, .1) !important; color: var(--chilon-verde) !important; }
+.alert-light-primary {
+  background-color: rgba(0, 128, 40, .08) !important;
+  border-color: rgba(0, 128, 40, .2) !important;
+  color: var(--chilon-verde-oscuro) !important;
 }
+.bg-light-primary { background-color: rgba(0, 128, 40, .08) !important; }
+a { color: var(--chilon-verde); }
+a:hover { color: var(--chilon-verde-oscuro); }
+
+/* ============== Menú lateral ============== */
+.aside-menu .menu-nav > .menu-section .menu-text { color: var(--chilon-dorado) !important; }
+.aside-menu .menu-nav > .menu-item:hover > .menu-link .menu-text,
+.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link .menu-text { color: #fff !important; }
+.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link {
+  background-color: var(--chilon-rojo) !important;
+  border-left: 4px solid var(--chilon-dorado);
+}
+.aside-menu .menu-nav > .menu-item:hover > .menu-link .svg-icon svg,
+.aside-menu .menu-nav > .menu-item.menu-item-active > .menu-link .svg-icon svg { stroke: #fff !important; }
+
+/* ============== Inputs ============== */
+.form-control:focus {
+  border-color: var(--chilon-verde) !important;
+  box-shadow: 0 0 0 .15rem rgba(0, 128, 40, .15);
+}
+.card-custom.border-left-gold { border-left: 4px solid var(--chilon-dorado) !important; }
+
+
+/* =====================================================================
+   MÓDULO ENCUESTAS  (todo va acotado a #modalEncuestas)
+   ===================================================================== */
+
+/* ---- Encabezado del modal: negro + doble línea del logo ---- */
+#modalEncuestas .enc-modal-header {
+  background: var(--chilon-negro);
+  border-bottom: 4px solid var(--chilon-dorado);
+  box-shadow: 0 4px 0 var(--chilon-rojo);
+  position: relative;
+  z-index: 2;
+}
+#modalEncuestas .enc-modal-header .modal-title i { color: var(--chilon-dorado); }
+#modalEncuestas .modal-body { background: var(--chilon-fondo) !important; }
+
+/* ---- Tarjeta del formulario ---- */
+#modalEncuestas .enc-card { border: 2px solid var(--chilon-gris-medio); border-left: 6px solid var(--chilon-rojo); }
+#modalEncuestas .enc-card-header { background: var(--chilon-gris) !important; }
+#modalEncuestas .enc-form-titulo { color: var(--chilon-negro); font-size: 1.1rem; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ---- Colores "warning" de Metronic -> identidad Chilón, solo en este modal ---- */
+#modalEncuestas .text-warning { color: var(--chilon-rojo) !important; }
+#modalEncuestas .btn-warning {
+  background-color: var(--chilon-rojo) !important;
+  border-color: var(--chilon-rojo) !important;
+  color: #fff !important;
+}
+#modalEncuestas .btn-warning:hover { background-color: var(--chilon-rojo-oscuro) !important; border-color: var(--chilon-rojo-oscuro) !important; }
+#modalEncuestas .badge-warning { background-color: var(--chilon-dorado) !important; color: var(--chilon-negro) !important; font-weight: 700; }
+
+/* ---- Secciones: cada bloque del formulario es una caja con barra de título ---- */
+#formEncuesta { counter-reset: enc-seccion; }
+
+#formEncuesta .enc-sec {
+  border: 2px solid var(--chilon-gris-medio);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 1.25rem 1rem;
+  margin: 0 0 1.5rem;
+  overflow: hidden;
+  min-width: 0;
+}
+#formEncuesta .enc-sec > legend.enc-sec-titulo {
+  float: left;
+  width: calc(100% + 2.5rem);
+  margin: 0 -1.25rem 1rem;
+  padding: .65rem 1.25rem;
+  background: var(--chilon-gris);
+  color: var(--chilon-negro);
+  border-bottom: 3px solid var(--chilon-rojo);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+  line-height: 1.4;
+}
+#formEncuesta .enc-sec > legend.enc-sec-titulo + * { clear: both; }
+/* numeración automática de las secciones */
+#formEncuesta .enc-sec > legend.enc-sec-titulo::before {
+  counter-increment: enc-seccion;
+  content: counter(enc-seccion);
+  display: inline-block;
+  min-width: 1.7rem;
+  height: 1.7rem;
+  line-height: 1.7rem;
+  margin-right: .6rem;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--chilon-rojo);
+  color: #fff;
+  font-size: .85rem;
+}
+#formEncuesta .enc-sec > legend.enc-sec-titulo small {
+  font-weight: 400;
+  color: #5a5a68;
+  margin-left: .6rem;
+  font-size: .8rem;
+  letter-spacing: 0;
+}
+
+/* Los dos cuestionarios y el tipo de encuesta destacan con barra negra */
+#formEncuesta .enc-sec-encuesta { border-color: var(--chilon-negro); }
+#formEncuesta .enc-sec-encuesta > legend.enc-sec-titulo {
+  background: var(--chilon-negro);
+  color: #fff;
+  border-bottom-color: var(--chilon-dorado);
+}
+#formEncuesta .enc-sec-encuesta > legend.enc-sec-titulo small { color: var(--chilon-gris); }
+#formEncuesta .enc-sec-tipo { border-color: var(--chilon-rojo); }
+
+/* ---- Campos: borde bien marcado; los informativos en gris punteado ---- */
+#formEncuesta label { color: var(--chilon-negro); font-weight: 600; margin-bottom: .35rem; }
+#formEncuesta .required-field::after { content: " *"; color: var(--chilon-rojo); font-weight: 700; }
+#formEncuesta .form-control,
+#formEncuesta .custom-select {
+  border: 1.5px solid #8f8fa6;
+  border-radius: 5px;
+  background-color: #fff;
+  color: var(--chilon-negro);
+}
+#formEncuesta .form-control:focus { border-color: var(--chilon-verde); background-color: #fff; }
+#formEncuesta .form-control[readonly],
+#formEncuesta .form-control:disabled {
+  background-color: var(--chilon-gris-claro) !important;
+  border: 1.5px dashed var(--chilon-gris-medio);
+  color: #4a4a58;
+  cursor: not-allowed;
+}
+#formEncuesta .form-control.is-invalid { border-color: var(--chilon-rojo); background-image: none; box-shadow: 0 0 0 .15rem rgba(214, 1, 6, .15); }
+#formEncuesta .input-group-text {
+  background: var(--chilon-gris);
+  border: 1.5px solid #8f8fa6;
+  color: var(--chilon-negro);
+  font-weight: 600;
+}
+
+/* ---- Preguntas del cuestionario: una caja por pregunta ---- */
+#formEncuesta .enc-pregunta {
+  border: 1.5px solid var(--chilon-gris-medio);
+  border-left: 6px solid var(--chilon-rojo);
+  border-radius: 6px;
+  background: #fff;
+  padding: .85rem 1rem;
+  margin-bottom: .85rem;
+}
+#formEncuesta .enc-pregunta:nth-child(even) { background: #F5F5F9; }
+#formEncuesta .enc-pregunta:last-child { margin-bottom: 0; }
+#formEncuesta .enc-pregunta-texto { font-size: .95rem; margin-bottom: .6rem; }
+
+/* ---- Aviso de precarga: franja amarilla con el origen de los datos ---- */
+#avisoPrecarga {
+  display: flex;
+  align-items: flex-start;
+  gap: .9rem;
+  background: var(--chilon-dorado-claro) !important;
+  border: 2px solid var(--chilon-dorado) !important;
+  border-left: 10px solid var(--chilon-dorado) !important;
+  border-radius: 8px;
+  padding: .9rem 1.1rem !important;
+  color: #3b2a00 !important;
+  box-shadow: 0 2px 6px rgba(120, 64, 5, .15);
+}
+#avisoPrecarga .enc-aviso-icono {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  height: 2.6rem;
+  line-height: 2.6rem;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--chilon-negro);
+  color: var(--chilon-dorado);
+  font-size: 1.15rem;
+}
+#avisoPrecarga .enc-aviso-titulo { font-weight: 700; font-size: 1.02rem; color: var(--chilon-negro); margin-bottom: .4rem; }
+#avisoPrecarga .enc-aviso-origen { margin-bottom: .45rem; }
+#avisoPrecarga .enc-chip {
+  display: inline-block;
+  background: #fff;
+  border: 1.5px solid var(--chilon-cafe);
+  border-radius: 20px;
+  padding: .15rem .75rem;
+  margin: 0 .4rem .3rem 0;
+  font-size: .82rem;
+  color: var(--chilon-negro);
+}
+#avisoPrecarga .enc-aviso-texto { font-size: .9rem; }
+
+/* ---- Fotos: casillas con borde claro ---- */
+#modalEncuestas .foto-slot > div { border: 2px solid var(--chilon-gris-medio) !important; border-radius: 8px !important; }
+#modalEncuestas .foto-slot .foto-box { border: 1.5px dashed var(--chilon-gris-medio); background: var(--chilon-gris-claro) !important; }
+
+/* ---- Bitácora ---- */
+#modalEncuestas #panelGridEncuestas .card-title i { color: var(--chilon-rojo) !important; }

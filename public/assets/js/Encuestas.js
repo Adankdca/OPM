@@ -105,10 +105,11 @@ var EncuestasModule = (function () {
 
     // ── Tipos de encuesta (texto + colores para resaltarlos en la bitácora) ──
     var TIPOS = { INICIO: 'Inicio', PROCESO: 'En proceso', CONCLUSION: 'Conclusión' };
+    // Mismos colores que el reporte general: Inicio negro, En proceso amarillo, Conclusión verde
     var TIPO_ESTILO = {
-        INICIO:     { badge: 'badge-primary', fondo: '#e1f0ff' },
-        PROCESO:    { badge: 'badge-warning', fondo: '#fff4de' },
-        CONCLUSION: { badge: 'badge-success', fondo: '#e8fff3' }
+        INICIO:     { bg: '#15151B', fg: '#fff',    fondo: '#e6e6ec' },
+        PROCESO:    { bg: '#FDC703', fg: '#15151B', fondo: '#fff6d6' },
+        CONCLUSION: { bg: '#008028', fg: '#fff',    fondo: '#e3f3e8' }
     };
     var MAX_FOTOS = 5;
 
@@ -128,14 +129,14 @@ var EncuestasModule = (function () {
             }
 
             data.forEach(function (e) {
-                var est = TIPO_ESTILO[e.tipo] || { badge: 'badge-secondary', fondo: '#f3f6f9' };
+                var est = TIPO_ESTILO[e.tipo] || { bg: '#6c757d', fg: '#fff', fondo: '#f3f6f9' };
                 var situacion = esc(e.situacion || '') +
                     (e.subsituacion ? '<div class="text-muted" style="font-size:.75rem;">' + esc(e.subsituacion) + '</div>' : '');
                 $tbody.append(
                     '<tr>' +
                     '<td class="small font-weight-bold">' + esc(e.folio || '') + '</td>' +
                     '<td style="background:' + est.fondo + ';">' +
-                    '<span class="badge ' + est.badge + ' font-weight-bolder" style="font-size:.85rem;padding:.5em .9em;">' +
+                    '<span class="badge font-weight-bolder" style="background:' + est.bg + ';color:' + est.fg + ';font-size:.85rem;padding:.5em .9em;">' +
                     esc(TIPOS[e.tipo] || e.tipo || '') + '</span></td>' +
                     '<td class="small">' + esc(e.fechaCaptura || '') + '</td>' +
                     '<td class="small">' + esc(e.fechaVisita || '') + '</td>' +
@@ -187,8 +188,8 @@ var EncuestasModule = (function () {
         lista.forEach(function (p) {
             var prev = prevMap[p.id] || {};
             var req = Number(p.obligatoria) === 1;
-            var html = '<div class="border-bottom py-2" data-idpregunta="' + p.id + '" data-tipo="' + esc(p.tipo) + '" data-obligatoria="' + (req ? 1 : 0) + '">' +
-                '<label class="font-weight-bold small mb-1' + (req ? ' required-field' : '') + '">' + p.orden + '. ' + esc(p.texto) + '</label>';
+            var html = '<div class="enc-pregunta" data-idpregunta="' + p.id + '" data-tipo="' + esc(p.tipo) + '" data-obligatoria="' + (req ? 1 : 0) + '">' +
+                '<label class="enc-pregunta-texto d-block' + (req ? ' required-field' : '') + '">' + p.orden + '. ' + esc(p.texto) + '</label>';
 
             if (p.tipo === 'SI_NO') {
                 html += '<div class="row"><div class="col-md-4">' +
@@ -330,10 +331,20 @@ var EncuestasModule = (function () {
                 if (!data || !data.encuesta) return; // primera encuesta de la acción: formulario vacío
 
                 llenarFormulario(data, true);
+                var o = data.encuesta;
                 $('#avisoPrecarga').html(
-                    '<i class="fas fa-info-circle mr-1"></i> Se precargaron los datos de la última encuesta (' +
-                    esc(TIPOS[data.encuesta.TipoEncuesta] || '') + ', visita del ' + fechaCorta(data.encuesta.FechaVisita) +
-                    '). Revisa y actualiza lo que haya cambiado. Folio, tipo, fecha de visita, fotos y documentos se capturan de nuevo.'
+                    '<div class="enc-aviso-icono"><i class="fas fa-history"></i></div>' +
+                    '<div class="enc-aviso-cuerpo">' +
+                    '<div class="enc-aviso-titulo">Datos precargados de la última encuesta de esta acción</div>' +
+                    '<div class="enc-aviso-origen">' +
+                    '<span class="enc-chip"><b>Origen:</b> última encuesta capturada</span>' +
+                    '<span class="enc-chip"><b>Folio:</b> ' + esc(o.Folio || 's/f') + '</span>' +
+                    '<span class="enc-chip"><b>Tipo:</b> ' + esc(TIPOS[o.TipoEncuesta] || '') + '</span>' +
+                    '<span class="enc-chip"><b>Visita:</b> ' + fechaCorta(o.FechaVisita) + '</span>' +
+                    '</div>' +
+                    '<div class="enc-aviso-texto">Revisa y actualiza lo que haya cambiado antes de guardar. ' +
+                    '<b>Se capturan de nuevo:</b> folio, tipo, fecha de visita, fotos y documentos.</div>' +
+                    '</div>'
                 ).show();
             }).always(function () {
                 mostrarPanelEncuestas('form');
@@ -687,6 +698,16 @@ var EncuestasModule = (function () {
         window.location.href = API + 'fichaPdf/' + idEncuesta;
     };
 
+    // Reporte general de TODAS las encuestas de la acción (vista previa/impresión o PDF)
+    var reporteGeneral = function (pdf) {
+        if (!foliosAccion.length) {
+            Swal.fire('Sin encuestas', 'Esta acción todavía no tiene encuestas para el reporte.', 'info');
+            return;
+        }
+        var url = API + (pdf ? 'reporteGeneralPdf/' : 'reporteGeneral/') + $('#hddIdAccionEncuestas').val();
+        if (pdf) { window.location.href = url; } else { window.open(url, '_blank'); }
+    };
+
     // ── Eventos ──────────────────────────────────────────────────────────
     var init = function () {
         $('#btnNuevaEncuesta').on('click', function () { nuevaEncuesta(); });
@@ -715,7 +736,8 @@ var EncuestasModule = (function () {
         eliminarEncuesta: eliminarEncuesta,
         eliminarDocumento: eliminarDocumento,
         imprimirFicha: imprimirFicha,
-        descargarPdf: descargarPdf
+        descargarPdf: descargarPdf,
+        reporteGeneral: reporteGeneral
     };
 
 })();

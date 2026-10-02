@@ -371,6 +371,32 @@
                                 </div>
                             </div>
                             <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Dependencia Ejecutora:</label>
+                                        <input type="text" class="form-control" id="txtDependenciaEjecutoraAccion" maxlength="255">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Meta:</label>
+                                        <input type="text" class="form-control" id="txtMetaGeneralAccion" maxlength="500">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Latitud:</label>
+                                        <input type="text" class="form-control" id="txtLatitudAccion" maxlength="50" placeholder="16.0000">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Longitud:</label>
+                                        <input type="text" class="form-control" id="txtLongitudAccion" maxlength="50" placeholder="-92.0000">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label class="font-weight-bold required-field">Acción:</label>
@@ -635,7 +661,7 @@
                      api/Obras/getContratosDisponibles, asignarContrato y
                      quitarContrato -- ver Obras.js: abrirContrato() / quitarContrato(). --}}
                 <div id="panelContrato" style="display:none;">
-                    <div class="card card-custom shadow-sm" style="border-left:4px solid #FFA800 !important;">
+                    <div class="card card-custom shadow-sm" style="border-left:4px solid #D60106 !important;">
                         <div class="card-header" style="background:#fff8e8; min-height:45px; padding:10px 20px;">
                             <div class="card-title mb-0">
                                 <i class="fas fa-file-contract text-warning mr-2"></i>
@@ -695,7 +721,7 @@
 <div class="modal fade" id="modalEncuestas" tabindex="-1" role="dialog" data-backdrop="static">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
-            <div class="modal-header" style="background:linear-gradient(135deg,#FFA800 0%,#EE9D01 100%);">
+            <div class="modal-header enc-modal-header">
                 <h5 class="modal-title text-white">
                     <i class="fas fa-clipboard-check mr-2"></i> Encuestas de Seguimiento
                     <span class="badge badge-light ml-2" id="badgeTotalEncuestas">0</span>
@@ -722,6 +748,12 @@
                             <span class="font-weight-bold">Bitácora</span>
                         </div>
                         <div class="card-toolbar">
+                            <button type="button" class="btn btn-light-dark btn-sm font-weight-bold mr-2" onclick="EncuestasModule.reporteGeneral(false)" title="Vista previa / Imprimir el reporte general de la acción">
+                                <i class="fas fa-print mr-1"></i> Reporte general
+                            </button>
+                            <button type="button" class="btn btn-light-danger btn-sm font-weight-bold mr-2" onclick="EncuestasModule.reporteGeneral(true)" title="Descargar el reporte general en PDF">
+                                <i class="fas fa-file-pdf mr-1"></i> PDF
+                            </button>
                             <button type="button" class="btn btn-warning btn-sm text-white" id="btnNuevaEncuesta">
                                 <i class="fas fa-plus mr-1"></i> Nueva Encuesta
                             </button>
@@ -752,10 +784,10 @@
 
                 {{-- ═══ Formulario Nueva/Editar Encuesta ═══ --}}
                 <div id="panelFormEncuesta" style="display:none;">
-                    <div class="card card-custom shadow-sm" style="border-left:4px solid #FFA800 !important;">
-                        <div class="card-header" style="background:#fff8e6; min-height:45px;">
+                    <div class="card card-custom shadow-sm enc-card">
+                        <div class="card-header enc-card-header" style="min-height:45px;">
                             <div class="card-title mb-0">
-                                <span class="font-weight-bold" style="color:#EE9D01;" id="lblTituloFormEncuesta">Nueva Encuesta</span>
+                                <span class="font-weight-bold enc-form-titulo" id="lblTituloFormEncuesta">Nueva Encuesta</span>
                             </div>
                         </div>
                         <div class="card-body">
@@ -763,6 +795,8 @@
                             <form id="formEncuesta" enctype="multipart/form-data" onsubmit="return false;">
 
                                 <div id="avisoPrecarga" class="alert alert-light-info py-2 px-3 mb-3" style="display:none;"></div>
+                                <fieldset class="enc-sec enc-sec-tipo">
+                                    <legend class="enc-sec-titulo">Tipo de encuesta</legend>
 
                                 <div class="row">
                                     <div class="col-md-4 form-group">
@@ -776,8 +810,11 @@
                                         <small class="text-muted" id="hintTipo"></small>
                                     </div>
                                 </div>
+                                </fieldset>
 
                                 {{-- ── Encabezado (la mayoría son informativos, vienen de la acción) ── --}}
+                                <fieldset class="enc-sec enc-sec-info">
+                                    <legend class="enc-sec-titulo">Datos generales de la acción <small>los campos en gris vienen de la Acción y no se editan aquí</small></legend>
                                 <div class="row">
                                     <div class="col-md-4 form-group">
                                         <label class="font-weight-bold">Folio:</label>
@@ -870,9 +907,11 @@
                                     </div>
                                 </div>
 
+                                </fieldset>
+
                                 {{-- ── Situación encontrada ── --}}
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Situación Encontrada</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Situación Encontrada</legend>
                                     <div class="row">
                                         <div class="col-md-6 form-group">
                                             <label class="font-weight-bold required-field">Situación:</label>
@@ -885,16 +924,16 @@
                                     </div>
                                 </fieldset>
 
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Observación de la situación encontrada (describir brevemente)</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Observación de la situación encontrada (describir brevemente)</legend>
                                     <div class="form-group">
                                         <textarea class="form-control" id="txtObservacionesSituacion" rows="3"></textarea>
                                     </div>
                                 </fieldset>
 
                                 {{-- ── Persona que proporcionó la información ── --}}
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos de la persona que proporcionó información de la obra o acción</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Datos de la persona que proporcionó información de la obra o acción</legend>
                                     <div class="row">
                                         <div class="col-md-6 form-group">
                                             <label class="font-weight-bold">Identificación Personal:</label>
@@ -928,11 +967,13 @@
                                 </fieldset>
 
                                 {{-- ── ENCUESTA 1 ── --}}
-                                <h6 class="font-weight-bold text-warning mt-4">ENCUESTA 1</h6>
-                                <div id="cuestionarioEncuesta1" class="bg-white border rounded px-3 py-2 mb-3"></div>
+                                <fieldset class="enc-sec enc-sec-encuesta">
+                                    <legend class="enc-sec-titulo">ENCUESTA 1 <small>cuestionario</small></legend>
+                                    <div id="cuestionarioEncuesta1"></div>
+                                </fieldset>
 
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos y comentarios del encuestador / verificador</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Datos y comentarios del encuestador / verificador</legend>
                                     <div class="form-group">
                                         <label class="font-weight-bold">Nombre:</label>
                                         <input type="text" class="form-control" id="txtNombreEncuestador">
@@ -943,23 +984,23 @@
                                     </div>
                                 </fieldset>
 
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Situación Encontrada</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Situación Encontrada</legend>
                                     <div class="form-group">
                                         <select class="form-control" id="cboSituacionEncuestador"></select>
                                     </div>
                                 </fieldset>
 
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Observaciones</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Observaciones</legend>
                                     <div class="form-group">
                                         <textarea class="form-control" id="txtObservacionesEncuestador" rows="3"></textarea>
                                     </div>
                                 </fieldset>
 
                                 {{-- ── Datos del encuestado ── --}}
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos del Encuestado</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Datos del Encuestado</legend>
                                     <div class="row">
                                         <div class="col-md-6 form-group">
                                             <label class="font-weight-bold">Identificación Personal:</label>
@@ -1005,11 +1046,13 @@
                                 </fieldset>
 
                                 {{-- ── ENCUESTA 2 ── --}}
-                                <h6 class="font-weight-bold text-warning mt-4">ENCUESTA 2</h6>
-                                <div id="cuestionarioEncuesta2" class="bg-white border rounded px-3 py-2 mb-3"></div>
+                                <fieldset class="enc-sec enc-sec-encuesta">
+                                    <legend class="enc-sec-titulo">ENCUESTA 2 <small>cuestionario</small></legend>
+                                    <div id="cuestionarioEncuesta2"></div>
+                                </fieldset>
 
-                                <fieldset class="border rounded px-3 pt-2 pb-1 mb-3 bg-white">
-                                    <legend class="w-auto px-2 font-weight-bold text-warning" style="font-size:1rem;">Datos y comentarios del encuestador / verificador</legend>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Datos y comentarios del encuestador / verificador</legend>
                                     <div class="form-group">
                                         <label class="font-weight-bold">Nombre:</label>
                                         <input type="text" class="form-control" id="txtNombreEncuestadorFinal">
@@ -1020,14 +1063,16 @@
                                     </div>
                                 </fieldset>
 
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Comentarios de la Dependencia Ejecutora:</label>
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Comentarios de la Dependencia Ejecutora</legend>
                                     <textarea class="form-control" id="txtComentarioFinal" rows="3"></textarea>
-                                </div>
+                                </fieldset>
 
                                 {{-- ── Evidencia: hasta 5 fotos (las casillas las arma Encuestas.js) + documentos ── --}}
-                                <label class="font-weight-bold text-warning">
-                                    <i class="fas fa-camera mr-1"></i> Evidencia fotográfica
+                                <fieldset class="enc-sec">
+                                    <legend class="enc-sec-titulo">Evidencia <small>fotografías y documentos</small></legend>
+                                <label class="font-weight-bold">
+                                    <i class="fas fa-camera mr-1"></i> Fotografías de la encuesta de
                                     <span class="badge badge-warning ml-1" id="lblTipoFotos">(elija el tipo de encuesta)</span>
                                     <span class="text-muted font-weight-normal small ml-1">máximo 5 fotos</span>
                                 </label>
@@ -1042,6 +1087,7 @@
                                     <small class="text-muted">PDF, Word, Excel, PowerPoint, CSV, TXT, ZIP/RAR o imagen. Máximo 20 MB por archivo.</small>
                                     <div id="previewDocumentos" class="mt-2"></div>
                                 </div>
+                                </fieldset>
 
                                 <div class="text-right">
                                     <button type="button" class="btn btn-light mr-2" id="btnCancelarEncuesta">Cancelar</button>

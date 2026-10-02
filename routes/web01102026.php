@@ -20,14 +20,9 @@ Route::post('/login', [LoginController::class, 'store'])->name('login.store');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 // Vista principal del modulo de Obras
-// La URL visible es /verificacionOP (el NOMBRE de la ruta sigue siendo
-// 'obras.principal', así que el menú, el login y los demás enlaces no cambian).
-Route::get('/verificacionOP', function () {
+Route::get('/obras', function () {
     return view('obras.principal');
 })->middleware('login.required')->name('obras.principal');
-
-// Compatibilidad: quien tenga guardada la dirección anterior (/obras) llega a la nueva.
-Route::redirect('/obras', '/verificacionOP');
 
 // Endpoints tipo API que consume Obras.js via $.get()
 // OJO: el prefijo usa "Obras" con mayuscula a proposito, porque tu

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Equivalente a Ceduver.Controllers.ObrasController (ApiController de .NET).
@@ -465,7 +467,11 @@ class ObrasController extends Controller
                 'A.programa',
                 'A.subprograma',
                 'A.proyecto',
-                'A.IDTipoOrigen as idTipoOrigen'
+                'A.IDTipoOrigen as idTipoOrigen',
+                'A.dependenciaejecutora as dependenciaEjecutora',
+                'A.metageneral as metaGeneral',
+                'A.Latitud as latitud',
+                'A.Logintud as longitud'
             )
             ->where('A.IDAcciones', $idAccion)
             ->first();
@@ -552,6 +558,11 @@ class ObrasController extends Controller
             'subprograma' => $request->input('subprograma'),
             'proyecto' => $request->input('proyecto'),
             'IDTipoOrigen' => $request->input('idTipoOrigen', 1),
+            // datos informativos que luego se muestran en la ficha de encuesta
+            'dependenciaejecutora' => $request->input('dependenciaEjecutora') !== '' ? $request->input('dependenciaEjecutora') : null,
+            'metageneral' => $request->input('metaGeneral') !== '' ? $request->input('metaGeneral') : null,
+            'Latitud' => $request->input('latitud') !== '' ? $request->input('latitud') : null,
+            'Logintud' => $request->input('longitud') !== '' ? $request->input('longitud') : null,
         ];
 
         if ($request->input('accion') === 'add') {
@@ -582,6 +593,22 @@ class ObrasController extends Controller
         return response()->json(['success' => true]);
     }
 
+    /** Borra el archivo físico de una foto/documento de encuesta (public/uploads/encuestas, o storage si es de la versión anterior). */
+    private function borrarArchivoEncuesta($ruta)
+    {
+        if (!$ruta) {
+            return;
+        }
+        if (strpos($ruta, 'uploads/encuestas/') === 0) {
+            $abs = public_path($ruta);
+            if (File::exists($abs)) {
+                File::delete($abs);
+            }
+        } elseif (strpos($ruta, 'encuestas/') === 0) {
+            Storage::disk('public')->delete($ruta);
+        }
+    }
+
     /**
      * DELETE /api/obras/eliminarAccion/{idAccion}
      * El JS (eliminarAccion() en Obras.js) advierte "verifique que no
@@ -603,9 +630,34 @@ class ObrasController extends Controller
             );
         }
 
-        // Si la accion tenia un contrato asignado, no hace falta desasignarlo
-        // aparte -- se borra junto con la fila completa de TblD_Acciones.
-        DB::table('TblD_Acciones')->where('IDAcciones', $idAccion)->delete();
+        // Se borran TAMBIEN las encuestas de la acción (respuestas, fotos y documentos),
+        // todo en una transacción: o se borra todo o no se borra nada. Los archivos
+        // físicos se eliminan hasta que la transacción termina bien.
+        $archivos = DB::transaction(function () use ($idAccion) {
+            $archivos = [];
+            $ids = DB::table('tbld_encuestas')->where('IDAcciones', $idAccion)->pluck('IDEncuesta')->all();
+
+            if ($ids) {
+                $archivos = array_merge(
+                    DB::table('tbld_encuestafotos')->whereIn('IDEncuesta', $ids)->pluck('RutaArchivo')->all(),
+                    DB::table('tbld_encuestadocumentos')->whereIn('IDEncuesta', $ids)->pluck('RutaArchivo')->all()
+                );
+                DB::table('tbld_encuestarespuestas')->whereIn('IDEncuesta', $ids)->delete();
+                DB::table('tbld_encuestafotos')->whereIn('IDEncuesta', $ids)->delete();
+                DB::table('tbld_encuestadocumentos')->whereIn('IDEncuesta', $ids)->delete();
+                DB::table('tbld_encuestas')->whereIn('IDEncuesta', $ids)->delete();
+            }
+
+            // Si la accion tenia un contrato asignado, no hace falta desasignarlo
+            // aparte -- se borra junto con la fila completa de TblD_Acciones.
+            DB::table('TblD_Acciones')->where('IDAcciones', $idAccion)->delete();
+
+            return $archivos;
+        });
+
+        foreach ($archivos as $ruta) {
+            $this->borrarArchivoEncuesta($ruta);
+        }
 
         return response()->json(['success' => true]);
     }
